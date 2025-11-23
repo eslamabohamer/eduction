@@ -8,7 +8,7 @@ import { classroomService, Classroom } from '@/services/classroomService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Video, Plus, Calendar, ExternalLink } from 'lucide-react';
@@ -81,21 +81,24 @@ export default function LiveSessionsPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>جدولة حصة افتراضية</DialogTitle>
+              <DialogDescription>
+                أدخل تفاصيل البث المباشر الجديد أدناه.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label>عنوان الدرس</Label>
-                <Input 
-                  required 
+                <Input
+                  required
                   value={formData.title}
-                  onChange={e => setFormData({...formData, title: e.target.value})}
+                  onChange={e => setFormData({ ...formData, title: e.target.value })}
                   placeholder="مثال: مراجعة الفصل الأول"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label>الفصل الدراسي</Label>
-                <Select onValueChange={val => setFormData({...formData, classroom_id: val})}>
+                <Select onValueChange={val => setFormData({ ...formData, classroom_id: val })}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الفصل" />
                   </SelectTrigger>
@@ -110,30 +113,30 @@ export default function LiveSessionsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>وقت البدء</Label>
-                  <Input 
+                  <Input
                     type="datetime-local"
-                    required 
+                    required
                     value={formData.start_time}
-                    onChange={e => setFormData({...formData, start_time: e.target.value})}
+                    onChange={e => setFormData({ ...formData, start_time: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>وقت الانتهاء</Label>
-                  <Input 
+                  <Input
                     type="datetime-local"
-                    required 
+                    required
                     value={formData.end_time}
-                    onChange={e => setFormData({...formData, end_time: e.target.value})}
+                    onChange={e => setFormData({ ...formData, end_time: e.target.value })}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>رابط البث (Zoom/Meet/Teams)</Label>
-                <Input 
-                  required 
+                <Input
+                  required
                   value={formData.stream_url}
-                  onChange={e => setFormData({...formData, stream_url: e.target.value})}
+                  onChange={e => setFormData({ ...formData, stream_url: e.target.value })}
                   placeholder="https://zoom.us/j/..."
                 />
               </div>

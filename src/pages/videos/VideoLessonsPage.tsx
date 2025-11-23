@@ -8,7 +8,7 @@ import { classroomService, Classroom } from '@/services/classroomService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlayCircle, Plus, Film } from 'lucide-react';
@@ -74,6 +74,9 @@ export default function VideoLessonsPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>إضافة درس مسجل</DialogTitle>
+              <DialogDescription>
+                أدخل تفاصيل الفيديو الجديد أدناه.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 mt-4">
               <div className="space-y-2">

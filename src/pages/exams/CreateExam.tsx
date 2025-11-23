@@ -50,7 +50,9 @@ export default function CreateExam() {
       description: '',
       duration_minutes: 60,
       total_marks: 100,
-      questions: []
+      questions: [],
+      start_time: '',
+      end_time: ''
     }
   });
 
@@ -92,7 +94,7 @@ export default function CreateExam() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          
+
           {/* Basic Info */}
           <Card>
             <CardHeader>
@@ -112,7 +114,7 @@ export default function CreateExam() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="classroom_id"
@@ -198,15 +200,15 @@ export default function CreateExam() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">الأسئلة ({fields.length})</h2>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => append({ 
-                  question_text: '', 
-                  question_type: 'MCQ', 
-                  points: 1, 
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => append({
+                  question_text: '',
+                  question_type: 'MCQ',
+                  points: 1,
                   correct_answer: '',
-                  options: ['','','',''] 
+                  options: ['', '', '', '']
                 })}
               >
                 <Plus className="h-4 w-4 ml-2" />
