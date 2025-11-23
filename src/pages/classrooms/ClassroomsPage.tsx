@@ -8,7 +8,7 @@ import { classroomService, Classroom } from '@/services/classroomService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -69,33 +69,36 @@ export default function ClassroomsPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>إنشاء فصل جديد</DialogTitle>
+              <DialogDescription>
+                أدخل تفاصيل الفصل الجديد أدناه.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label>اسم الفصل / المجموعة</Label>
-                <Input 
-                  required 
+                <Input
+                  required
                   value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="مثال: مجموعة أ - فيزياء"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>المرحلة</Label>
-                  <Input 
-                    required 
+                  <Input
+                    required
                     value={formData.level}
-                    onChange={e => setFormData({...formData, level: e.target.value})}
+                    onChange={e => setFormData({ ...formData, level: e.target.value })}
                     placeholder="مثال: الثانوية"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>الصف</Label>
-                  <Input 
-                    required 
+                  <Input
+                    required
                     value={formData.grade}
-                    onChange={e => setFormData({...formData, grade: e.target.value})}
+                    onChange={e => setFormData({ ...formData, grade: e.target.value })}
                     placeholder="مثال: الثالث الثانوي"
                   />
                 </div>
@@ -113,8 +116,8 @@ export default function ClassroomsPage() {
           <p className="text-muted-foreground col-span-full text-center py-10">لا توجد فصول دراسية حالياً</p>
         ) : (
           classrooms.map((classroom) => (
-            <Card 
-              key={classroom.id} 
+            <Card
+              key={classroom.id}
               className="hover:bg-muted/50 transition-colors cursor-pointer"
               onClick={() => navigate(`/classrooms/${classroom.id}`)}
             >
