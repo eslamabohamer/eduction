@@ -23,15 +23,21 @@ export function SecretaryMonitoringPage() {
             setLoading(true);
             setError(null);
             // Fetch logs specifically for Secretaries
-            const data = await activityLogService.getLogs({ role: 'Secretary' });
-            setLogs(data || []);
+            const response = await activityLogService.getLogs({ role: 'Secretary' });
+
+            if (response.success && response.data) {
+                setLogs(response.data);
+            } else {
+                const err = response.error;
+                if (err?.message?.includes('404') || err?.code === '42P01') {
+                    setError('جدول السجلات غير موجود. يرجى تشغيل ملف الترحيل (Migration) الجديد في قاعدة البيانات.');
+                } else {
+                    setError('حدث خطأ أثناء تحميل السجلات. يرجى المحاولة مرة أخرى.');
+                }
+            }
         } catch (err: any) {
             console.error('Failed to load logs', err);
-            if (err.message?.includes('404') || err.code === '42P01') {
-                setError('جدول السجلات غير موجود. يرجى تشغيل ملف الترحيل (Migration) الجديد في قاعدة البيانات.');
-            } else {
-                setError('حدث خطأ أثناء تحميل السجلات. يرجى المحاولة مرة أخرى.');
-            }
+            setError('حدث خطأ غير متوقع.');
         } finally {
             setLoading(false);
         }

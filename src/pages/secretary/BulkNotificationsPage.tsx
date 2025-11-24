@@ -23,7 +23,11 @@ export default function BulkNotificationsPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    classroomService.getClassrooms().then(data => setClassrooms(data as any));
+    classroomService.getClassrooms().then(response => {
+      if (response.success && response.data) {
+        setClassrooms(response.data);
+      }
+    });
   }, []);
 
   async function handleSend() {
@@ -35,16 +39,20 @@ export default function BulkNotificationsPage() {
     setLoading(true);
     try {
       // In a real app, we would fetch the phone numbers of the selected target group here
-      const mockPhones = ['201000000001', '201000000002']; 
-      
+      const mockPhones = ['201000000001', '201000000002'];
+
       if (channel === 'whatsapp') {
-        await whatsappService.sendBulkMessage(mockPhones, message);
-        toast.success(`تم إرسال رسائل واتساب بنجاح إلى ${target === 'all' ? 'الجميع' : 'الفصل المحدد'}`);
+        const response = await whatsappService.sendBulkMessage(mockPhones, message);
+        if (response.success) {
+          toast.success(`تم إرسال رسائل واتساب بنجاح إلى ${target === 'all' ? 'الجميع' : 'الفصل المحدد'}`);
+        } else {
+          toast.error('فشل إرسال رسائل واتساب');
+        }
       } else {
         // System notification logic would go here
         toast.success('تم إرسال الإشعارات للنظام');
       }
-      
+
       setMessage('');
     } catch (error) {
       console.error(error);
@@ -66,7 +74,7 @@ export default function BulkNotificationsPage() {
           <CardTitle>إعدادات الرسالة</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          
+
           {/* Channel Selection */}
           <div className="space-y-3">
             <Label>قناة الإرسال</Label>
@@ -119,8 +127,8 @@ export default function BulkNotificationsPage() {
           {/* Message Body */}
           <div className="space-y-3">
             <Label>نص الرسالة</Label>
-            <Textarea 
-              placeholder="اكتب رسالتك هنا..." 
+            <Textarea
+              placeholder="اكتب رسالتك هنا..."
               className="min-h-[150px]"
               value={message}
               onChange={(e) => setMessage(e.target.value)}

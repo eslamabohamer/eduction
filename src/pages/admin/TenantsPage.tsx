@@ -25,8 +25,12 @@ export default function TenantsPage() {
 
   async function loadTenants() {
     try {
-      const data = await adminService.getTenants();
-      setTenants(data);
+      const response = await adminService.getTenants();
+      if (response.success && response.data) {
+        setTenants(response.data);
+      } else {
+        toast.error(response.error?.message || 'فشل تحميل البيانات');
+      }
     } catch (error) {
       console.error(error);
       toast.error('فشل تحميل البيانات');
@@ -37,15 +41,19 @@ export default function TenantsPage() {
 
   async function handleStatusChange(id: string, status: 'active' | 'suspended') {
     try {
-      await adminService.toggleTenantStatus(id, status);
-      toast.success(`تم تغيير الحالة إلى ${status === 'active' ? 'نشط' : 'موقوف'}`);
-      loadTenants();
+      const response = await adminService.toggleTenantStatus(id, status);
+      if (response.success) {
+        toast.success(`تم تغيير الحالة إلى ${status === 'active' ? 'نشط' : 'موقوف'}`);
+        loadTenants();
+      } else {
+        toast.error(response.error?.message || 'فشل تغيير الحالة');
+      }
     } catch (error) {
       toast.error('فشل تغيير الحالة');
     }
   }
 
-  const filteredTenants = tenants.filter(t => 
+  const filteredTenants = tenants.filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
     t.email?.toLowerCase().includes(search.toLowerCase())
   );

@@ -41,8 +41,10 @@ export function HomeworkSubmissionsDialog({ homeworkId, open, onOpenChange, home
   async function loadSubmissions() {
     if (!homeworkId) return;
     setLoading(true);
-    try {
-      const data = await homeworkService.getSubmissions(homeworkId);
+    const response = await homeworkService.getSubmissions(homeworkId);
+    
+    if (response.success && response.data) {
+      const data = response.data;
       setSubmissions(data);
       
       // Initialize state
@@ -54,12 +56,10 @@ export function HomeworkSubmissionsDialog({ homeworkId, open, onOpenChange, home
       });
       setGrades(initialGrades);
       setFeedbacks(initialFeedbacks);
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تحميل التسليمات');
-    } finally {
-      setLoading(false);
+    } else {
+      toast.error(response.error?.message || 'فشل تحميل التسليمات');
     }
+    setLoading(false);
   }
 
   async function handleSaveGrade(submissionId: string) {
@@ -69,15 +69,14 @@ export function HomeworkSubmissionsDialog({ homeworkId, open, onOpenChange, home
     if (grade === undefined) return;
 
     setSaving(submissionId);
-    try {
-      await homeworkService.gradeSubmission(submissionId, grade, feedback);
+    const response = await homeworkService.gradeSubmission(submissionId, grade, feedback);
+    
+    if (response.success) {
       toast.success('تم حفظ الدرجة');
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل حفظ الدرجة');
-    } finally {
-      setSaving(null);
+    } else {
+      toast.error(response.error?.message || 'فشل حفظ الدرجة');
     }
+    setSaving(null);
   }
 
   return (

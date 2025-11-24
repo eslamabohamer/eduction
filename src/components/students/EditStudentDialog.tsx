@@ -46,21 +46,15 @@ export function EditStudentDialog({ student, open, onOpenChange, onSuccess }: Pr
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    try {
-      const response = await studentService.updateStudent(student.id, formData);
-      if (response.success) {
-        toast.success('تم تحديث البيانات بنجاح');
-        onSuccess();
-        onOpenChange(false);
-      } else {
-        toast.error(response.error?.message || 'فشل تحديث البيانات');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('حدث خطأ غير متوقع');
-    } finally {
-      setLoading(false);
+    const response = await studentService.updateStudent(student.id, formData);
+    if (response.success) {
+      toast.success('تم تحديث البيانات بنجاح');
+      onSuccess();
+      onOpenChange(false);
+    } else {
+      toast.error(response.error?.message || 'فشل تحديث البيانات');
     }
+    setLoading(false);
   }
 
   return (

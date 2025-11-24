@@ -23,8 +23,10 @@ export default function AdminDashboard() {
 
   async function loadStats() {
     try {
-      const data = await adminService.getPlatformStats();
-      setStats(data);
+      const response = await adminService.getPlatformStats();
+      if (response.success && response.data) {
+        setStats(response.data);
+      }
     } catch (error) {
       console.error(error);
     } finally {

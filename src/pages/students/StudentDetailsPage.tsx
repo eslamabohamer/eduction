@@ -36,16 +36,14 @@ export default function StudentDetailsPage() {
   }, [id]);
 
   async function loadStudent() {
-    try {
-      const data = await studentService.getStudentById(id!);
-      setStudent(data);
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تحميل بيانات الطالب');
+    const response = await studentService.getStudentById(id!);
+    if (response.success && response.data) {
+      setStudent(response.data);
+    } else {
+      toast.error(response.error?.message || 'فشل تحميل بيانات الطالب');
       navigate('/students');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   if (loading) return <div className="p-8 text-center">جاري التحميل...</div>;
@@ -69,7 +67,7 @@ export default function StudentDetailsPage() {
               <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${student.user.name}`} />
               <AvatarFallback>{student.user.name[0]}</AvatarFallback>
             </Avatar>
-            
+
             <div className="flex-1 space-y-2 w-full">
               <div className="flex justify-between items-start">
                 <div>
@@ -88,13 +86,13 @@ export default function StudentDetailsPage() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
-                      <StudentQRCode 
-                        studentName={student.user.name} 
-                        studentCode={student.student_code} 
+                      <StudentQRCode
+                        studentName={student.user.name}
+                        studentCode={student.student_code}
                       />
                     </DialogContent>
                   </Dialog>
-                  
+
                   <Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
                     تعديل البيانات
                   </Button>
@@ -150,22 +148,22 @@ export default function StudentDetailsPage() {
               <StudentAcademic studentId={student.id} />
             </TabsContent>
           )}
-          
+
           <TabsContent value="attendance">
             <StudentAttendance studentId={student.id} />
           </TabsContent>
-          
+
           <TabsContent value="financial">
             <StudentFinancials studentId={student.id} />
           </TabsContent>
-          
+
           <TabsContent value="behavior">
             <StudentBehavior studentId={student.id} />
           </TabsContent>
         </div>
       </Tabs>
 
-      <EditStudentDialog 
+      <EditStudentDialog
         student={student}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}

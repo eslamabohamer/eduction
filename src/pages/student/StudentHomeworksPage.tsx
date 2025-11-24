@@ -27,33 +27,30 @@ export default function StudentHomeworksPage() {
   }, []);
 
   async function loadData() {
-    try {
-      const data = await homeworkService.getStudentHomeworks();
-      setHomeworks(data);
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تحميل الواجبات');
-    } finally {
-      setLoading(false);
+    const response = await homeworkService.getStudentHomeworks();
+    if (response.success && response.data) {
+      setHomeworks(response.data);
+    } else {
+      toast.error(response.error?.message || 'فشل تحميل الواجبات');
     }
+    setLoading(false);
   }
 
   async function handleSubmit(homeworkId: string) {
     if (!answer.trim()) return;
-    
+
     setSubmittingId(homeworkId);
-    try {
-      await homeworkService.submitHomework(homeworkId, answer);
+    const response = await homeworkService.submitHomework(homeworkId, answer);
+
+    if (response.success) {
       toast.success('تم تسليم الواجب بنجاح');
       setIsDialogOpen(false);
       setAnswer('');
       loadData(); // Reload to update status
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تسليم الواجب');
-    } finally {
-      setSubmittingId(null);
+    } else {
+      toast.error(response.error?.message || 'فشل تسليم الواجب');
     }
+    setSubmittingId(null);
   }
 
   return (
@@ -87,16 +84,16 @@ export default function StudentHomeworksPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm line-clamp-3">{hw.description}</p>
-                  
+
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>آخر موعد: {format(new Date(hw.due_date), 'PPP', { locale: arEG })}</span>
                   </div>
 
                   {isSubmitted && hw.submission?.grade !== undefined && (
-                     <div className="mt-2 p-2 bg-primary/10 rounded text-sm font-semibold text-primary text-center">
-                        الدرجة: {hw.submission.grade} / 10
-                     </div>
+                    <div className="mt-2 p-2 bg-primary/10 rounded text-sm font-semibold text-primary text-center">
+                      الدرجة: {hw.submission.grade} / 10
+                    </div>
                   )}
                 </CardContent>
                 <CardFooter>
@@ -127,19 +124,19 @@ export default function StudentHomeworksPage() {
                           </div>
                           <div className="space-y-2">
                             <Label>إجابتك</Label>
-                            <Textarea 
-                              placeholder="اكتب الحل هنا..." 
+                            <Textarea
+                              placeholder="اكتب الحل هنا..."
                               className="min-h-[150px]"
                               value={answer}
                               onChange={(e) => setAnswer(e.target.value)}
                             />
                           </div>
-                          <Button 
-                            className="w-full" 
+                          <Button
+                            className="w-full"
                             onClick={() => handleSubmit(hw.id)}
                             disabled={!answer.trim() || submittingId !== hw.id} // Ensure we only submit for active dialog
                           >
-                            {submittingId === hw.id && isDialogOpen ? 'جاري الإرسال...' : 'إرسال الحل'} 
+                            {submittingId === hw.id && isDialogOpen ? 'جاري الإرسال...' : 'إرسال الحل'}
                           </Button>
                         </div>
                       </DialogContent>

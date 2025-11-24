@@ -23,13 +23,13 @@ export default function SecretaryDashboard() {
 
   async function loadStats() {
     try {
-      const [students, classrooms] = await Promise.all([
+      const [studentsResponse, classroomsResponse] = await Promise.all([
         studentService.getStudents(),
         classroomService.getClassrooms()
       ]);
       setStats({
-        students: students.length,
-        classrooms: classrooms.length,
+        students: studentsResponse.success && studentsResponse.data ? studentsResponse.data.length : 0,
+        classrooms: classroomsResponse.success && classroomsResponse.data ? classroomsResponse.data.length : 0,
         attendanceToday: 0 // Would need a specific query for today's attendance
       });
     } catch (error) {

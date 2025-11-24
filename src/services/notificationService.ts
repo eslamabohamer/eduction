@@ -14,50 +14,77 @@ export interface Notification {
   type: 'info' | 'warning' | 'success';
 }
 
+import { ServiceResponse } from '@/types/service';
+
 export const notificationService = {
-  async getNotifications() {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
+  async getNotifications(): Promise<ServiceResponse<Notification[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-    if (error) throw error;
-    return data as Notification[];
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as Notification[] };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
-  async markAsRead(id: string) {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', id);
+  async markAsRead(id: string): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', id);
 
-    if (error) throw error;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
-  async markAllAsRead() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  async markAllAsRead(): Promise<ServiceResponse<void>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: { message: 'Not authenticated' } };
 
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', user.id)
-      .eq('is_read', false);
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
 
-    if (error) throw error;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   /**
    * Trigger the database function to check and generate notifications
    * This should be called periodically or on app load
    */
-  async checkNotifications() {
+  async checkNotifications(): Promise<ServiceResponse<void>> {
     try {
       const { error } = await supabase.rpc('check_and_send_notifications');
-      if (error) console.error('Failed to check notifications:', error);
-    } catch (err) {
+      if (error) {
+        console.error('Failed to check notifications:', error);
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (err: any) {
       console.error('Error checking notifications:', err);
+      return { success: false, error: { message: err.message } };
     }
   }
 };

@@ -34,8 +34,10 @@ export default function StudentGradesPage() {
                 .single();
 
             if (profile) {
-                const data = await studentService.getAcademicStats(profile.id);
-                setStats(data);
+                const response = await studentService.getAcademicStats(profile.id);
+                if (response.success && response.data) {
+                    setStats(response.data);
+                }
             }
         } catch (error) {
             console.error(error);

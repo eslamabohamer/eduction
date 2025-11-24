@@ -18,14 +18,13 @@ export function StudentAcademic({ studentId }: { studentId: string }) {
   }, [studentId]);
 
   async function loadStats() {
-    try {
-      const data = await studentService.getAcademicStats(studentId);
-      setStats(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+    const response = await studentService.getAcademicStats(studentId);
+    if (response.success && response.data) {
+      setStats(response.data);
+    } else {
+      console.error(response.error);
     }
+    setLoading(false);
   }
 
   // Calculations

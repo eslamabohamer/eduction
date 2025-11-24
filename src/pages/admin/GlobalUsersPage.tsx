@@ -22,8 +22,12 @@ export default function GlobalUsersPage() {
     
     setLoading(true);
     try {
-      const data = await adminService.searchGlobalUsers(search);
-      setUsers(data || []);
+      const response = await adminService.searchGlobalUsers(search);
+      if (response.success && response.data) {
+        setUsers(response.data);
+      } else {
+        setUsers([]);
+      }
     } catch (error) {
       console.error(error);
     } finally {

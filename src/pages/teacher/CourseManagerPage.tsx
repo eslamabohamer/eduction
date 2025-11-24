@@ -117,224 +117,226 @@ export default function CourseManagerPage() {
         } catch (error) {
             toast.error('فشل إضافة الدرس');
         }
-        async function handleUploadVideo() {
-            if (!selectedLessonId || !videoFile) return;
+    }
 
-            setUploading(true);
-            try {
-                const fileExt = videoFile.name.split('.').pop();
-                const fileName = `${Math.random()}.${fileExt}`;
-                const filePath = `lessons/${selectedLessonId}/${fileName}`;
+    async function handleUploadVideo() {
+        if (!selectedLessonId || !videoFile) return;
 
-                // 1. Upload to Storage
-                const uploadResponse = await videoService.uploadVideo(videoFile, filePath);
-                if (!uploadResponse.success) throw new Error(uploadResponse.error?.message);
+        setUploading(true);
+        try {
+            const fileExt = videoFile.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `lessons/${selectedLessonId}/${fileName}`;
 
-                // 2. Create DB Record
-                const videoResponse = await videoService.createVideoRecord({
-                    lesson_id: selectedLessonId,
-                    title: videoFile.name,
-                    storage_path: filePath,
-                    duration: 0, // Should be extracted ideally
-                    is_public: false
-                });
-                if (!videoResponse.success) throw new Error(videoResponse.error?.message);
+            // 1. Upload to Storage
+            const uploadResponse = await videoService.uploadVideo(videoFile, filePath);
+            if (!uploadResponse.success) throw new Error(uploadResponse.error?.message);
 
-                toast.success('تم رفع الفيديو بنجاح');
-                setIsVideoDialogOpen(false);
-                setVideoFile(null);
-                if (selectedCourse) loadCourseStructure(selectedCourse.id);
-            } catch (error: any) {
-                console.error(error);
-                toast.error(error.message || 'فشل رفع الفيديو');
-            } finally {
-                setUploading(false);
-            }
+            // 2. Create DB Record
+            const videoResponse = await videoService.createVideoRecord({
+                lesson_id: selectedLessonId,
+                title: videoFile.name,
+                storage_path: filePath,
+                duration: 0, // Should be extracted ideally
+                is_public: false
+            });
+            if (!videoResponse.success) throw new Error(videoResponse.error?.message);
+
+            toast.success('تم رفع الفيديو بنجاح');
+            setIsVideoDialogOpen(false);
+            setVideoFile(null);
+            if (selectedCourse) loadCourseStructure(selectedCourse.id);
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || 'فشل رفع الفيديو');
+        } finally {
+            setUploading(false);
         }
+    }
 
-        return (
-            <div className="container mx-auto p-6 space-y-6">
-                <div className="flex justify-between items-center">
-                    <h1 className="text-2xl font-bold">إدارة الدورات التدريبية</h1>
-                    <Dialog open={isCourseDialogOpen} onOpenChange={setIsCourseDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="ml-2 h-4 w-4" />
-                                دورة جديدة
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>إنشاء دورة جديدة</DialogTitle>
-                                <DialogDescription>أدخل عنوان الدورة الجديدة</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 mt-4">
-                                <div className="space-y-2">
-                                    <Label>عنوان الدورة</Label>
-                                    <Input value={newCourseTitle} onChange={e => setNewCourseTitle(e.target.value)} />
-                                </div>
-                                <Button onClick={handleCreateCourse} className="w-full">إنشاء</Button>
+    return (
+        <div className="container mx-auto p-6 space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">إدارة الدورات التدريبية</h1>
+                <Dialog open={isCourseDialogOpen} onOpenChange={setIsCourseDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <Plus className="ml-2 h-4 w-4" />
+                            دورة جديدة
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>إنشاء دورة جديدة</DialogTitle>
+                            <DialogDescription>أدخل عنوان الدورة الجديدة</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 mt-4">
+                            <div className="space-y-2">
+                                <Label>عنوان الدورة</Label>
+                                <Input value={newCourseTitle} onChange={e => setNewCourseTitle(e.target.value)} />
                             </div>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {/* Course List */}
-                    <Card className="md:col-span-1 h-fit">
-                        <CardHeader>
-                            <CardTitle className="text-lg">الدورات</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                            {courses.map(course => (
-                                <Button
-                                    key={course.id}
-                                    variant={selectedCourse?.id === course.id ? "default" : "ghost"}
-                                    className="w-full justify-start"
-                                    onClick={() => setSelectedCourse(course)}
-                                >
-                                    {course.title}
-                                </Button>
-                            ))}
-                        </CardContent>
-                    </Card>
-
-                    {/* Course Content Editor */}
-                    <Card className="md:col-span-3 min-h-[500px]">
-                        <CardHeader className="flex flex-row justify-between items-center">
-                            <CardTitle>{selectedCourse ? selectedCourse.title : 'اختر دورة للبدء'}</CardTitle>
-                            {selectedCourse && (
-                                <Dialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" size="sm">
-                                            <Plus className="ml-2 h-4 w-4" />
-                                            وحدة جديدة
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>إضافة وحدة جديدة</DialogTitle>
-                                            <DialogDescription>أدخل عنوان الوحدة</DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-4 mt-4">
-                                            <div className="space-y-2">
-                                                <Label>عنوان الوحدة</Label>
-                                                <Input value={newModuleTitle} onChange={e => setNewModuleTitle(e.target.value)} />
-                                            </div>
-                                            <Button onClick={handleCreateModule} className="w-full">إضافة</Button>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                            )}
-                        </CardHeader>
-                        <CardContent>
-                            {selectedCourse && (
-                                <Accordion type="single" collapsible className="w-full">
-                                    {modules.map(module => (
-                                        <AccordionItem key={module.id} value={module.id}>
-                                            <AccordionTrigger className="hover:no-underline">
-                                                <div className="flex justify-between w-full ml-4">
-                                                    <span>{module.title}</span>
-                                                    <Dialog open={isLessonDialogOpen} onOpenChange={setIsLessonDialogOpen}>
-                                                        <DialogTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedModuleId(module.id);
-                                                                }}
-                                                            >
-                                                                <Plus className="h-4 w-4" />
-                                                            </Button>
-                                                        </DialogTrigger>
-                                                        <DialogContent>
-                                                            <DialogHeader>
-                                                                <DialogTitle>إضافة درس جديد</DialogTitle>
-                                                                <DialogDescription>أدخل عنوان الدرس</DialogDescription>
-                                                            </DialogHeader>
-                                                            <div className="space-y-4 mt-4">
-                                                                <div className="space-y-2">
-                                                                    <Label>عنوان الدرس</Label>
-                                                                    <Input value={newLessonTitle} onChange={e => setNewLessonTitle(e.target.value)} />
-                                                                </div>
-                                                                <Button onClick={handleCreateLesson} className="w-full">إضافة</Button>
-                                                            </div>
-                                                        </DialogContent>
-                                                    </Dialog>
-                                                </div>
-                                            </AccordionTrigger>
-                                            <AccordionContent className="space-y-2 pt-2">
-                                                {module.lessons?.map(lesson => (
-                                                    <div key={lesson.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                                                        <div className="flex items-center gap-3">
-                                                            <PlayCircle className="h-5 w-5 text-muted-foreground" />
-                                                            <span>{lesson.title}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            {lesson.video ? (
-                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
-                                                                    <FileVideo className="h-3 w-3" />
-                                                                    فيديو مرفق
-                                                                </span>
-                                                            ) : (
-                                                                <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
-                                                                    <DialogTrigger asChild>
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() => setSelectedLessonId(lesson.id)}
-                                                                        >
-                                                                            <Upload className="h-4 w-4 ml-2" />
-                                                                            رفع فيديو
-                                                                        </Button>
-                                                                    </DialogTrigger>
-                                                                    <DialogContent>
-                                                                        <DialogHeader>
-                                                                            <DialogTitle>رفع فيديو للدرس: {lesson.title}</DialogTitle>
-                                                                            <DialogDescription>اختر ملف الفيديو للرفع</DialogDescription>
-                                                                        </DialogHeader>
-                                                                        <div className="space-y-4 mt-4">
-                                                                            <div className="space-y-2">
-                                                                                <Label>ملف الفيديو</Label>
-                                                                                <Input
-                                                                                    type="file"
-                                                                                    accept="video/*"
-                                                                                    onChange={e => setVideoFile(e.target.files?.[0] || null)}
-                                                                                />
-                                                                            </div>
-                                                                            <Button
-                                                                                onClick={handleUploadVideo}
-                                                                                className="w-full"
-                                                                                disabled={!videoFile || uploading}
-                                                                            >
-                                                                                {uploading ? (
-                                                                                    <>
-                                                                                        <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                                                                        جاري الرفع...
-                                                                                    </>
-                                                                                ) : 'رفع الفيديو'}
-                                                                            </Button>
-                                                                        </div>
-                                                                    </DialogContent>
-                                                                </Dialog>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {(!module.lessons || module.lessons.length === 0) && (
-                                                    <div className="text-center text-sm text-muted-foreground py-4">
-                                                        لا توجد دروس في هذه الوحدة
-                                                    </div>
-                                                )}
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                </Accordion>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+                            <Button onClick={handleCreateCourse} className="w-full">إنشاء</Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
-        );
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {/* Course List */}
+                <Card className="md:col-span-1 h-fit">
+                    <CardHeader>
+                        <CardTitle className="text-lg">الدورات</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        {courses.map(course => (
+                            <Button
+                                key={course.id}
+                                variant={selectedCourse?.id === course.id ? "default" : "ghost"}
+                                className="w-full justify-start"
+                                onClick={() => setSelectedCourse(course)}
+                            >
+                                {course.title}
+                            </Button>
+                        ))}
+                    </CardContent>
+                </Card>
+
+                {/* Course Content Editor */}
+                <Card className="md:col-span-3 min-h-[500px]">
+                    <CardHeader className="flex flex-row justify-between items-center">
+                        <CardTitle>{selectedCourse ? selectedCourse.title : 'اختر دورة للبدء'}</CardTitle>
+                        {selectedCourse && (
+                            <Dialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        <Plus className="ml-2 h-4 w-4" />
+                                        وحدة جديدة
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>إضافة وحدة جديدة</DialogTitle>
+                                        <DialogDescription>أدخل عنوان الوحدة</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 mt-4">
+                                        <div className="space-y-2">
+                                            <Label>عنوان الوحدة</Label>
+                                            <Input value={newModuleTitle} onChange={e => setNewModuleTitle(e.target.value)} />
+                                        </div>
+                                        <Button onClick={handleCreateModule} className="w-full">إضافة</Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        {selectedCourse && (
+                            <Accordion type="single" collapsible className="w-full">
+                                {modules.map(module => (
+                                    <AccordionItem key={module.id} value={module.id}>
+                                        <AccordionTrigger className="hover:no-underline">
+                                            <div className="flex justify-between w-full ml-4">
+                                                <span>{module.title}</span>
+                                                <Dialog open={isLessonDialogOpen} onOpenChange={setIsLessonDialogOpen}>
+                                                    <DialogTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedModuleId(module.id);
+                                                            }}
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent>
+                                                        <DialogHeader>
+                                                            <DialogTitle>إضافة درس جديد</DialogTitle>
+                                                            <DialogDescription>أدخل عنوان الدرس</DialogDescription>
+                                                        </DialogHeader>
+                                                        <div className="space-y-4 mt-4">
+                                                            <div className="space-y-2">
+                                                                <Label>عنوان الدرس</Label>
+                                                                <Input value={newLessonTitle} onChange={e => setNewLessonTitle(e.target.value)} />
+                                                            </div>
+                                                            <Button onClick={handleCreateLesson} className="w-full">إضافة</Button>
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="space-y-2 pt-2">
+                                            {module.lessons?.map(lesson => (
+                                                <div key={lesson.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                                                    <div className="flex items-center gap-3">
+                                                        <PlayCircle className="h-5 w-5 text-muted-foreground" />
+                                                        <span>{lesson.title}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {lesson.video ? (
+                                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                <FileVideo className="h-3 w-3" />
+                                                                فيديو مرفق
+                                                            </span>
+                                                        ) : (
+                                                            <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
+                                                                <DialogTrigger asChild>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => setSelectedLessonId(lesson.id)}
+                                                                    >
+                                                                        <Upload className="h-4 w-4 ml-2" />
+                                                                        رفع فيديو
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent>
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>رفع فيديو للدرس: {lesson.title}</DialogTitle>
+                                                                        <DialogDescription>اختر ملف الفيديو للرفع</DialogDescription>
+                                                                    </DialogHeader>
+                                                                    <div className="space-y-4 mt-4">
+                                                                        <div className="space-y-2">
+                                                                            <Label>ملف الفيديو</Label>
+                                                                            <Input
+                                                                                type="file"
+                                                                                accept="video/*"
+                                                                                onChange={e => setVideoFile(e.target.files?.[0] || null)}
+                                                                            />
+                                                                        </div>
+                                                                        <Button
+                                                                            onClick={handleUploadVideo}
+                                                                            className="w-full"
+                                                                            disabled={!videoFile || uploading}
+                                                                        >
+                                                                            {uploading ? (
+                                                                                <>
+                                                                                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                                                                                    جاري الرفع...
+                                                                                </>
+                                                                            ) : 'رفع الفيديو'}
+                                                                        </Button>
+                                                                    </div>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {(!module.lessons || module.lessons.length === 0) && (
+                                                <div className="text-center text-sm text-muted-foreground py-4">
+                                                    لا توجد دروس في هذه الوحدة
+                                                </div>
+                                            )}
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
 }

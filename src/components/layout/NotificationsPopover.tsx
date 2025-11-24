@@ -23,11 +23,11 @@ export function NotificationsPopover() {
     // Real-time subscription
     const subscription = supabase
       .channel('notifications')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
         table: 'notifications',
-        filter: `user_id=eq.${supabase.auth.getUser().then(({data}) => data.user?.id)}` // Simplified for demo
+        filter: `user_id=eq.${supabase.auth.getUser().then(({ data }) => data.user?.id)}` // Simplified for demo
       }, (payload) => {
         setNotifications(prev => [payload.new as Notification, ...prev]);
         setUnreadCount(prev => prev + 1);
@@ -39,18 +39,23 @@ export function NotificationsPopover() {
 
   async function loadNotifications() {
     try {
-      const data = await notificationService.getNotifications();
-      setNotifications(data);
-      setUnreadCount(data.filter(n => !n.is_read).length);
+      const response = await notificationService.getNotifications();
+      if (response.success && response.data) {
+        const data = response.data;
+        setNotifications(data);
+        setUnreadCount(data.filter(n => !n.is_read).length);
+      }
     } catch (error) {
       console.error(error);
     }
   }
 
   async function handleMarkAllRead() {
-    await notificationService.markAllAsRead();
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    setUnreadCount(0);
+    const response = await notificationService.markAllAsRead();
+    if (response.success) {
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    }
   }
 
   return (
@@ -81,8 +86,8 @@ export function NotificationsPopover() {
           ) : (
             <div className="divide-y">
               {notifications.map((notification) => (
-                <div 
-                  key={notification.id} 
+                <div
+                  key={notification.id}
                   className={`p-4 hover:bg-muted/50 transition-colors ${!notification.is_read ? 'bg-muted/20' : ''}`}
                 >
                   <div className="flex justify-between items-start gap-2">

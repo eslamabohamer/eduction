@@ -60,41 +60,53 @@ export const homeworkService = {
   /**
    * Get homeworks for student with their submission status
    */
-  async getStudentHomeworks() {
-    // 1. Get homeworks available to student (RLS handles filtering)
-    const { data: homeworks, error: hwError } = await supabase
-      .from('homework')
-      .select(`
-        *,
-        classroom:classrooms(name)
-      `)
-      .order('due_date', { ascending: true });
+  async getStudentHomeworks(): Promise<ServiceResponse<Homework[]>> {
+    try {
+      // 1. Get homeworks available to student (RLS handles filtering)
+      const { data: homeworks, error: hwError } = await supabase
+        .from('homework')
+        .select(`
+          *,
+          classroom:classrooms(name)
+        `)
+        .order('due_date', { ascending: true });
 
-    if (hwError) throw hwError;
+      if (hwError) {
+        return { success: false, error: { message: hwError.message, code: hwError.code } };
+      }
 
-    // 2. Get student's profile ID
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from('student_profiles')
-      .select('id')
-      .eq('user_id', user?.id)
-      .single();
+      // 2. Get student's profile ID
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
 
-    if (!profile) return homeworks as Homework[];
+      if (!profile) {
+        return { success: true, data: homeworks as Homework[] };
+      }
 
-    // 3. Get submissions for this student
-    const { data: submissions, error: subError } = await supabase
-      .from('homework_submissions')
-      .select('*')
-      .eq('student_id', profile.id);
+      // 3. Get submissions for this student
+      const { data: submissions, error: subError } = await supabase
+        .from('homework_submissions')
+        .select('*')
+        .eq('student_id', profile.id);
 
-    if (subError) throw subError;
+      if (subError) {
+        return { success: false, error: { message: subError.message, code: subError.code } };
+      }
 
-    // 4. Merge data
-    return homeworks.map(hw => ({
-      ...hw,
-      submission: submissions.find(s => s.homework_id === hw.id)
-    })) as Homework[];
+      // 4. Merge data
+      const data = homeworks.map(hw => ({
+        ...hw,
+        submission: submissions.find(s => s.homework_id === hw.id)
+      })) as Homework[];
+
+      return { success: true, data };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   async createHomework(data: Omit<Homework, 'id' | 'created_at' | 'classroom'>): Promise<ServiceResponse<Homework>> {
@@ -177,61 +189,79 @@ export const homeworkService = {
     }
   },
 
-  async submitHomework(homeworkId: string, content: string) {
-    // Get student profile first
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from('student_profiles')
-      .select('id')
-      .eq('user_id', user?.id)
-      .single();
+  async submitHomework(homeworkId: string, content: string): Promise<ServiceResponse<void>> {
+    try {
+      // Get student profile first
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
 
-    if (!profile) throw new Error('Student profile not found');
+      if (!profile) return { success: false, error: { message: 'Student profile not found' } };
 
-    const { error } = await supabase
-      .from('homework_submissions')
-      .insert({
-        homework_id: homeworkId,
-        student_id: profile.id,
-        content,
-        // tenant_id is handled by default if RLS/Triggers are set up, 
-        // or we can pass it if we have it in profile. 
-        // Assuming trigger/RLS handles it or it's inferred.
+      const { error } = await supabase
+        .from('homework_submissions')
+        .insert({
+          homework_id: homeworkId,
+          student_id: profile.id,
+          content,
+        });
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async getSubmissions(homeworkId: string): Promise<ServiceResponse<HomeworkSubmission[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('homework_submissions')
+        .select(`
+          *,
+          student:student_profiles(
+            student_code,
+            user:users(name)
+          )
+        `)
+        .eq('homework_id', homeworkId);
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as HomeworkSubmission[] };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async gradeSubmission(submissionId: string, grade: number, feedback: string): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('homework_submissions')
+        .update({
+          grade,
+          feedback
+        })
+        .eq('id', submissionId);
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+
+      // Log Activity
+      await activityLogService.logAction('grade_homework', 'homework_submission', submissionId, {
+        grade
       });
 
-    if (error) throw error;
-  },
-
-  async getSubmissions(homeworkId: string) {
-    const { data, error } = await supabase
-      .from('homework_submissions')
-      .select(`
-        *,
-        student:student_profiles(
-          student_code,
-          user:users(name)
-        )
-      `)
-      .eq('homework_id', homeworkId);
-
-    if (error) throw error;
-    return data as HomeworkSubmission[];
-  },
-
-  async gradeSubmission(submissionId: string, grade: number, feedback: string) {
-    const { error } = await supabase
-      .from('homework_submissions')
-      .update({
-        grade,
-        feedback
-      })
-      .eq('id', submissionId);
-
-    if (error) throw error;
-
-    // Log Activity
-    await activityLogService.logAction('grade_homework', 'homework_submission', submissionId, {
-      grade
-    });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   }
 };

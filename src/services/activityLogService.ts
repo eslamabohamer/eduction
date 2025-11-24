@@ -15,16 +15,18 @@ export interface ActivityLog {
     };
 }
 
+import { ServiceResponse } from '@/types/service';
+
 export const activityLogService = {
     async logAction(
         action_type: string,
         entity_type: string,
         entity_id: string | null,
         details: any = {}
-    ) {
+    ): Promise<ServiceResponse<void>> {
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) return { success: false, error: { message: 'User not authenticated' } };
 
             // Get tenant_id from user metadata or profile
             const { data: userProfile } = await supabase
@@ -33,9 +35,9 @@ export const activityLogService = {
                 .eq('id', user.id)
                 .single();
 
-            if (!userProfile) return;
+            if (!userProfile) return { success: false, error: { message: 'User profile not found' } };
 
-            await supabase.from('activity_logs').insert({
+            const { error } = await supabase.from('activity_logs').insert({
                 user_id: user.id,
                 action_type,
                 entity_type,
@@ -43,50 +45,53 @@ export const activityLogService = {
                 details,
                 tenant_id: userProfile.tenant_id
             });
-        } catch (error) {
+
+            if (error) {
+                console.error('Error logging activity:', error);
+                return { success: false, error: { message: error.message, code: error.code } };
+            }
+            return { success: true };
+        } catch (error: any) {
             console.error('Error logging activity:', error);
             // Don't throw, just log error so we don't block the main action
+            return { success: false, error: { message: error.message } };
         }
     },
 
-    async getLogs(filters?: { role?: string; limit?: number }) {
-        let query = supabase
-            .from('activity_logs')
-            .select(`
-        *,
-        user:users (
-          name,
-          role
-        )
-      `)
-            .order('created_at', { ascending: false });
+    async getLogs(filters?: { role?: string; limit?: number }): Promise<ServiceResponse<ActivityLog[]>> {
+        try {
+            let query = supabase
+                .from('activity_logs')
+                .select(`
+            *,
+            user:users (
+              name,
+              role
+            )
+          `)
+                .order('created_at', { ascending: false });
 
-        if (filters?.role) {
-            // This requires filtering on the joined table which Supabase supports
-            // but sometimes needs specific syntax.
-            // Alternatively, we can filter in memory or use !inner join if supported by the client lib easily.
-            // For now, let's fetch and filter or rely on the UI to filter.
-            // Actually, let's try to filter by the user role if possible.
-            // Supabase: .eq('user.role', filters.role) might not work directly without !inner
-            // Let's just fetch all and filter in UI or use a more complex query if needed.
-            // But wait, we want to monitor Secretaries.
+            if (filters?.limit) {
+                query = query.limit(filters.limit);
+            } else {
+                query = query.limit(100);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                return { success: false, error: { message: error.message, code: error.code } };
+            }
+
+            // Client-side filtering for role if needed, or we can improve the query later
+            let logs = data as ActivityLog[];
+            if (filters?.role && logs) {
+                logs = logs.filter((log: any) => log.user?.role === filters.role);
+            }
+
+            return { success: true, data: logs };
+        } catch (error: any) {
+            return { success: false, error: { message: error.message } };
         }
-
-        if (filters?.limit) {
-            query = query.limit(filters.limit);
-        } else {
-            query = query.limit(100);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-
-        // Client-side filtering for role if needed, or we can improve the query later
-        if (filters?.role && data) {
-            return data.filter((log: any) => log.user?.role === filters.role);
-        }
-
-        return data as ActivityLog[];
     }
 };

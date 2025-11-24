@@ -23,17 +23,21 @@ export default function ParentDashboard() {
 
   async function loadChildren() {
     try {
-      const students = await parentService.getMyChildren();
+      const response = await parentService.getMyChildren();
       
-      // Load stats for each child
-      const studentsWithStats = await Promise.all(
-        students.map(async (student) => {
-          const stats = await parentService.getChildStats(student.id);
-          return { ...student, stats };
-        })
-      );
-
-      setChildren(studentsWithStats);
+      if (response.success && response.data) {
+        const students = response.data;
+        // Load stats for each child
+        const studentsWithStats = await Promise.all(
+          students.map(async (student) => {
+            const statsRes = await parentService.getChildStats(student.id);
+            return { ...student, stats: statsRes.success ? statsRes.data : null };
+          })
+        );
+        setChildren(studentsWithStats);
+      } else {
+        toast.error(response.error?.message || 'فشل تحميل بيانات الأبناء');
+      }
     } catch (error) {
       console.error(error);
       toast.error('فشل تحميل بيانات الأبناء');

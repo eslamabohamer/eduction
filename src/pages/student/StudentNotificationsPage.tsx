@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { notificationService, Notification } from '@/services/notificationService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Bell, BookOpen, AlertCircle, Check, Info } from 'lucide-react';
+import { BookOpen, AlertCircle, Check, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { arEG } from 'date-fns/locale';
 
@@ -16,8 +16,10 @@ export default function StudentNotificationsPage() {
 
     async function loadNotifications() {
         try {
-            const data = await notificationService.getNotifications();
-            setNotifications(data);
+            const response = await notificationService.getNotifications();
+            if (response.success && response.data) {
+                setNotifications(response.data);
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -27,10 +29,12 @@ export default function StudentNotificationsPage() {
 
     async function markAsRead(id: string) {
         try {
-            await notificationService.markAsRead(id);
-            setNotifications(notifications.map(n =>
-                n.id === id ? { ...n, is_read: true } : n
-            ));
+            const response = await notificationService.markAsRead(id);
+            if (response.success) {
+                setNotifications(notifications.map(n =>
+                    n.id === id ? { ...n, is_read: true } : n
+                ));
+            }
         } catch (error) {
             console.error(error);
         }
@@ -38,8 +42,10 @@ export default function StudentNotificationsPage() {
 
     async function markAllAsRead() {
         try {
-            await notificationService.markAllAsRead();
-            setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+            const response = await notificationService.markAllAsRead();
+            if (response.success) {
+                setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+            }
         } catch (error) {
             console.error(error);
         }

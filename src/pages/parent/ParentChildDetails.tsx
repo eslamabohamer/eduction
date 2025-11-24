@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { studentService, StudentWithUser } from '@/services/studentService';
-import { parentService } from '@/services/parentService';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowRight,
-  Calendar,
-  BookOpen,
-  AlertCircle,
+
   CheckCircle2,
   Clock,
   XCircle
@@ -34,17 +32,17 @@ export default function ParentChildDetails() {
 
   async function loadData(studentId: string) {
     try {
-      const [studentData, statsData, attendanceData, behaviorData] = await Promise.all([
+      const [studentRes, statsRes, attendanceRes, behaviorRes] = await Promise.all([
         studentService.getStudentById(studentId),
         studentService.getAcademicStats(studentId),
         studentService.getAttendance(studentId),
         studentService.getBehaviorNotes(studentId)
       ]);
 
-      setStudent(studentData);
-      setStats(statsData);
-      setAttendance(attendanceData);
-      setBehavior(behaviorData);
+      if (studentRes.success && studentRes.data) setStudent(studentRes.data);
+      if (statsRes.success && statsRes.data) setStats(statsRes.data);
+      if (attendanceRes.success && attendanceRes.data) setAttendance(attendanceRes.data);
+      if (behaviorRes.success && behaviorRes.data) setBehavior(behaviorRes.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -190,8 +188,8 @@ export default function ParentChildDetails() {
                   <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-full ${record.status === 'present' ? 'bg-green-100 text-green-600' :
-                          record.status === 'absent' ? 'bg-red-100 text-red-600' :
-                            'bg-yellow-100 text-yellow-600'
+                        record.status === 'absent' ? 'bg-red-100 text-red-600' :
+                          'bg-yellow-100 text-yellow-600'
                         }`}>
                         {record.status === 'present' ? <CheckCircle2 className="h-4 w-4" /> :
                           record.status === 'absent' ? <XCircle className="h-4 w-4" /> :
@@ -230,8 +228,8 @@ export default function ParentChildDetails() {
               <div className="space-y-4">
                 {behavior.map((note, i) => (
                   <div key={i} className={`p-4 rounded-lg border ${note.type === 'positive' ? 'bg-green-50 border-green-100' :
-                      note.type === 'negative' ? 'bg-red-50 border-red-100' :
-                        'bg-gray-50 border-gray-100'
+                    note.type === 'negative' ? 'bg-red-50 border-red-100' :
+                      'bg-gray-50 border-gray-100'
                     }`}>
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="font-semibold">{note.title}</h4>

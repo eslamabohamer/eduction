@@ -34,14 +34,19 @@ export default function Dashboard() {
 
   async function loadTeacherStats() {
     try {
-      const [students, classrooms, exams, sessions] = await Promise.all([
-        studentService.getStudents().then(res => res.length).catch(() => 0),
-        classroomService.getClassrooms().then(res => res.length).catch(() => 0),
-        examService.getExams().then(res => res.length).catch(() => 0),
-        liveSessionService.getSessions().then(res => res.length).catch(() => 0)
+      const [studentsRes, classroomsRes, examsRes, sessionsRes] = await Promise.all([
+        studentService.getStudents(),
+        classroomService.getClassrooms(),
+        examService.getExams(),
+        liveSessionService.getSessions()
       ]);
 
-      setStats({ students, classrooms, exams, liveSessions: sessions });
+      setStats({
+        students: studentsRes.success && studentsRes.data ? studentsRes.data.length : 0,
+        classrooms: classroomsRes.success && classroomsRes.data ? classroomsRes.data.length : 0,
+        exams: examsRes.success && examsRes.data ? examsRes.data.length : 0,
+        liveSessions: sessionsRes.success && sessionsRes.data ? sessionsRes.data.length : 0
+      });
     } catch (error) {
       console.error(error);
     } finally {
@@ -51,26 +56,30 @@ export default function Dashboard() {
 
   async function loadStudentStats() {
     try {
-      const [homeworks, exams, sessions] = await Promise.all([
+      const [homeworksRes, examsRes, sessionsRes] = await Promise.all([
         homeworkService.getStudentHomeworks(),
         examService.getExams(),
         liveSessionService.getSessions()
       ]);
 
+      const homeworks = homeworksRes.success && homeworksRes.data ? homeworksRes.data : [];
+      const exams = examsRes.success && examsRes.data ? examsRes.data : [];
+      const sessions = sessionsRes.success && sessionsRes.data ? sessionsRes.data : [];
+
       const pendingHomework = homeworks.filter(h => !h.submission).length;
       const upcomingExams = exams.filter(e => new Date(e.start_time) > new Date()).length;
-      
+
       setStats({ pendingHomework, upcomingExams });
-      
+
       // Combine upcoming events
       const events = [
         ...exams.map(e => ({ type: 'exam', title: e.title, date: e.start_time, link: '/my-exams' })),
         ...sessions.map(s => ({ type: 'live', title: s.title, date: s.start_time, link: '/my-live-sessions' })),
         ...homeworks.filter(h => !h.submission).map(h => ({ type: 'homework', title: h.title, date: h.due_date, link: '/my-homework' }))
       ]
-      .filter(e => new Date(e.date) > new Date())
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(0, 5);
+        .filter(e => new Date(e.date) > new Date())
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, 5);
 
       setUpcoming(events);
 
@@ -103,7 +112,7 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">طالب مسجل</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">الفصول الدراسية</CardTitle>
@@ -222,10 +231,9 @@ export default function Dashboard() {
                   {upcoming.map((event, i) => (
                     <Link key={i} to={event.link} className="block group">
                       <div className="flex gap-3 items-start p-2 rounded hover:bg-muted/50 transition-colors">
-                        <div className={`w-1 h-10 rounded-full mt-1 ${
-                          event.type === 'exam' ? 'bg-red-500' : 
-                          event.type === 'live' ? 'bg-blue-500' : 'bg-green-500'
-                        }`} />
+                        <div className={`w-1 h-10 rounded-full mt-1 ${event.type === 'exam' ? 'bg-red-500' :
+                            event.type === 'live' ? 'bg-blue-500' : 'bg-green-500'
+                          }`} />
                         <div>
                           <h4 className="font-medium text-sm group-hover:text-primary transition-colors">{event.title}</h4>
                           <p className="text-xs text-muted-foreground">

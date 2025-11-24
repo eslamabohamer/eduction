@@ -29,10 +29,15 @@ export default function ParentMessages() {
 
   async function loadMessages() {
     try {
-      const data = await messageService.getMyMessages();
-      setMessages(data);
+      const response = await messageService.getMyMessages();
+      if (response.success && response.data) {
+        setMessages(response.data);
+      } else {
+        toast.error(response.error?.message || 'فشل تحميل الرسائل');
+      }
     } catch (error) {
       console.error(error);
+      toast.error('فشل تحميل الرسائل');
     } finally {
       setLoading(false);
     }
@@ -44,7 +49,7 @@ export default function ParentMessages() {
     // For MVP, we'll send to a placeholder ID or handle in backend trigger to notify admins.
     // Here we assume there's a way to get the teacher's ID, but simpler is to just create a message
     // and let admins see all messages sent to the tenant.
-    
+
     toast.info('ميزة إرسال الرسائل قيد التطوير');
     setIsDialogOpen(false);
   }

@@ -30,29 +30,29 @@ export function StudentAttendance({ studentId, readOnly = false }: Props) {
   }, [studentId]);
 
   async function loadAttendance() {
-    try {
-      const data = await studentService.getAttendance(studentId);
-      setRecords(data);
-    } catch (error) {
-      console.error(error);
+    const response = await studentService.getAttendance(studentId);
+    if (response.success && response.data) {
+      setRecords(response.data);
+    } else {
+      console.error(response.error);
     }
   }
 
   async function handleAddAttendance() {
     if (!date) return;
-    try {
-      await studentService.addAttendance({
-        student_id: studentId,
-        date: format(date, 'yyyy-MM-dd'),
-        status,
-        notes
-      });
+    const response = await studentService.addAttendance({
+      student_id: studentId,
+      date: format(date, 'yyyy-MM-dd'),
+      status,
+      notes
+    });
+
+    if (response.success) {
       toast.success('تم تسجيل الحضور');
       setIsDialogOpen(false);
       loadAttendance();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تسجيل الحضور');
+    } else {
+      toast.error(response.error?.message || 'فشل تسجيل الحضور');
     }
   }
 

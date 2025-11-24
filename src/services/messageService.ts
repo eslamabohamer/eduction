@@ -18,54 +18,79 @@ export interface Message {
   };
 }
 
+import { ServiceResponse } from '@/types/service';
+
 export const messageService = {
   /**
    * Get messages for current user
    */
-  async getMyMessages() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
+  async getMyMessages(): Promise<ServiceResponse<Message[]>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: { message: 'Not authenticated' } };
 
-    const { data, error } = await supabase
-      .from('messages')
-      .select(`
-        *,
-        sender:users!sender_id(name, role)
-      `)
-      .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
-      .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:users!sender_id(name, role)
+        `)
+        .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data as Message[];
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as Message[] };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   /**
    * Send a new message
    */
-  async sendMessage(recipientId: string, subject: string, body: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    // We need tenant_id, usually from user metadata or a query
-    // For now, let's assume the trigger handles tenant_id or we fetch it
-    // Safe fallback: fetch from users table
-    const { data: userData } = await supabase.from('users').select('tenant_id').eq('auth_id', user?.id).single();
+  async sendMessage(recipientId: string, subject: string, body: string): Promise<ServiceResponse<void>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: { message: 'Not authenticated' } };
 
-    const { error } = await supabase
-      .from('messages')
-      .insert({
-        sender_id: user?.id,
-        recipient_id: recipientId,
-        tenant_id: userData?.tenant_id,
-        subject,
-        body
-      });
+      // We need tenant_id, usually from user metadata or a query
+      // For now, let's assume the trigger handles tenant_id or we fetch it
+      // Safe fallback: fetch from users table
+      const { data: userData } = await supabase.from('users').select('tenant_id').eq('auth_id', user.id).single();
 
-    if (error) throw error;
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: user.id,
+          recipient_id: recipientId,
+          tenant_id: userData?.tenant_id,
+          subject,
+          body
+        });
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   /**
    * Mark message as read
    */
-  async markAsRead(id: string) {
-    await supabase.from('messages').update({ is_read: true }).eq('id', id);
+  async markAsRead(id: string): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase.from('messages').update({ is_read: true }).eq('id', id);
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   }
 };

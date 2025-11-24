@@ -26,8 +26,10 @@ export default function StudentAttendancePage() {
                 .single();
 
             if (profile) {
-                const data = await studentService.getAttendance(profile.id);
-                setRecords(data);
+                const response = await studentService.getAttendance(profile.id);
+                if (response.success && response.data) {
+                    setRecords(response.data);
+                }
             }
         } catch (error) {
             console.error(error);

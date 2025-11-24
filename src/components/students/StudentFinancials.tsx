@@ -41,36 +41,35 @@ export function StudentFinancials({ studentId, readOnly = false }: Props) {
   }, [studentId]);
 
   async function loadFinancials() {
-    try {
-      const data = await studentService.getFinancialRecords(studentId);
-      setRecords(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+    const response = await studentService.getFinancialRecords(studentId);
+    if (response.success && response.data) {
+      setRecords(response.data);
+    } else {
+      console.error(response.error);
     }
+    setLoading(false);
   }
 
   async function handleAddRecord() {
     if (!amount || !description) return;
-    try {
-      await studentService.addFinancialRecord({
-        student_id: studentId,
-        amount: parseFloat(amount),
-        type,
-        description: selectedMonth ? `${description} - شهر ${selectedMonth}` : description,
-        status,
-        date: new Date().toISOString()
-      });
+    const response = await studentService.addFinancialRecord({
+      student_id: studentId,
+      amount: parseFloat(amount),
+      type,
+      description: selectedMonth ? `${description} - شهر ${selectedMonth}` : description,
+      status,
+      date: new Date().toISOString()
+    });
+
+    if (response.success) {
       toast.success('تم إضافة السجل المالي');
       setIsDialogOpen(false);
       setAmount('');
       setDescription('');
       setSelectedMonth('');
       loadFinancials();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل إضافة السجل');
+    } else {
+      toast.error(response.error?.message || 'فشل إضافة السجل');
     }
   }
 

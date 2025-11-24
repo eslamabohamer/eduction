@@ -21,7 +21,7 @@ export default function ClassroomDetails() {
   const [classroom, setClassroom] = useState<Classroom | null>(null);
   const [enrolledStudents, setEnrolledStudents] = useState<StudentWithUser[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Enrollment state
   const [allStudents, setAllStudents] = useState<StudentWithUser[]>([]);
   const [openCombobox, setOpenCombobox] = useState(false);
@@ -36,14 +36,15 @@ export default function ClassroomDetails() {
   async function loadData() {
     try {
       setLoading(true);
-      const [cls, enrolled, all] = await Promise.all([
+      const [clsRes, enrolledRes, allRes] = await Promise.all([
         classroomService.getClassroomById(id!),
         classroomService.getEnrolledStudents(id!),
         studentService.getStudents()
       ]);
-      setClassroom(cls);
-      setEnrolledStudents(enrolled);
-      setAllStudents(all);
+
+      if (clsRes.success && clsRes.data) setClassroom(clsRes.data);
+      if (enrolledRes.success && enrolledRes.data) setEnrolledStudents(enrolledRes.data);
+      if (allRes.success && allRes.data) setAllStudents(allRes.data);
     } catch (error) {
       console.error(error);
       toast.error('فشل تحميل بيانات الفصل');
@@ -55,27 +56,25 @@ export default function ClassroomDetails() {
 
   async function handleEnroll() {
     if (!selectedStudentId || !id) return;
-    try {
-      await classroomService.enrollStudent(id, selectedStudentId);
+    const response = await classroomService.enrollStudent(id, selectedStudentId);
+    if (response.success) {
       toast.success('تم تسجيل الطالب بنجاح');
       setOpenCombobox(false);
       setSelectedStudentId('');
       loadData(); // Reload list
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تسجيل الطالب');
+    } else {
+      toast.error(response.error?.message || 'فشل تسجيل الطالب');
     }
   }
 
   async function handleRemoveStudent(studentId: string) {
     if (!confirm('هل أنت متأكد من إزالة الطالب من هذا الفصل؟')) return;
-    try {
-      await classroomService.removeStudent(id!, studentId);
+    const response = await classroomService.removeStudent(id!, studentId);
+    if (response.success) {
       toast.success('تم إزالة الطالب');
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل إزالة الطالب');
+    } else {
+      toast.error(response.error?.message || 'فشل إزالة الطالب');
     }
   }
 
@@ -105,7 +104,7 @@ export default function ClassroomDetails() {
       {/* Actions Bar */}
       <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg border">
         <h2 className="text-lg font-semibold">الطلاب المسجلين</h2>
-        
+
         <Dialog>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -161,9 +160,9 @@ export default function ClassroomDetails() {
                   </Command>
                 </PopoverContent>
               </Popover>
-              
-              <Button 
-                className="w-full" 
+
+              <Button
+                className="w-full"
                 onClick={handleEnroll}
                 disabled={!selectedStudentId}
               >
@@ -199,9 +198,9 @@ export default function ClassroomDetails() {
                   <TableCell className="font-mono">{student.student_code}</TableCell>
                   <TableCell>{new Date(student.user.created_at).toLocaleDateString('ar-EG')}</TableCell>
                   <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => handleRemoveStudent(student.id)}
                     >

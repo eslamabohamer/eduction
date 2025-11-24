@@ -22,7 +22,7 @@ export function StudentBehavior({ studentId, readOnly = false }: Props) {
   const [notes, setNotes] = useState<BehaviorNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'positive' | 'negative' | 'neutral'>('neutral');
@@ -32,33 +32,32 @@ export function StudentBehavior({ studentId, readOnly = false }: Props) {
   }, [studentId]);
 
   async function loadNotes() {
-    try {
-      const data = await studentService.getBehaviorNotes(studentId);
-      setNotes(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+    const response = await studentService.getBehaviorNotes(studentId);
+    if (response.success && response.data) {
+      setNotes(response.data);
+    } else {
+      console.error(response.error);
     }
+    setLoading(false);
   }
 
   async function handleAddNote() {
     if (!title) return;
-    try {
-      await studentService.addBehaviorNote({
-        student_id: studentId,
-        title,
-        description,
-        type
-      });
+    const response = await studentService.addBehaviorNote({
+      student_id: studentId,
+      title,
+      description,
+      type
+    });
+
+    if (response.success) {
       toast.success('تم إضافة الملاحظة');
       setIsDialogOpen(false);
       setTitle('');
       setDescription('');
       loadNotes();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل إضافة الملاحظة');
+    } else {
+      toast.error(response.error?.message || 'فشل إضافة الملاحظة');
     }
   }
 
@@ -81,13 +80,13 @@ export function StudentBehavior({ studentId, readOnly = false }: Props) {
               <div className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>العنوان</Label>
-                  <Input 
-                    value={title} 
+                  <Input
+                    value={title}
                     onChange={e => setTitle(e.target.value)}
                     placeholder="مثال: مشاركة فعالة في الفصل"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>النوع</Label>
                   <Select value={type} onValueChange={(v: any) => setType(v)}>
@@ -104,8 +103,8 @@ export function StudentBehavior({ studentId, readOnly = false }: Props) {
 
                 <div className="space-y-2">
                   <Label>التفاصيل</Label>
-                  <Textarea 
-                    value={description} 
+                  <Textarea
+                    value={description}
                     onChange={e => setDescription(e.target.value)}
                     placeholder="تفاصيل الموقف..."
                   />
@@ -125,17 +124,16 @@ export function StudentBehavior({ studentId, readOnly = false }: Props) {
           </div>
         ) : (
           notes.map((note) => (
-            <Card key={note.id} className={`border-r-4 ${
-              note.type === 'positive' ? 'border-r-green-500' :
-              note.type === 'negative' ? 'border-r-red-500' :
-              'border-r-blue-500'
-            }`}>
+            <Card key={note.id} className={`border-r-4 ${note.type === 'positive' ? 'border-r-green-500' :
+                note.type === 'negative' ? 'border-r-red-500' :
+                  'border-r-blue-500'
+              }`}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {note.type === 'positive' ? <ThumbsUp className="h-5 w-5 text-green-500" /> :
-                     note.type === 'negative' ? <ThumbsDown className="h-5 w-5 text-red-500" /> :
-                     <MessageSquare className="h-5 w-5 text-blue-500" />}
+                      note.type === 'negative' ? <ThumbsDown className="h-5 w-5 text-red-500" /> :
+                        <MessageSquare className="h-5 w-5 text-blue-500" />}
                     <CardTitle className="text-base">{note.title}</CardTitle>
                   </div>
                   <span className="text-xs text-muted-foreground">
