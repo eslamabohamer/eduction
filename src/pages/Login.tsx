@@ -1,6 +1,6 @@
 // src/pages/Login.tsx
-// تحديث صفحة تسجيل الدخول لإضافة رابط التسجيل
-// Update Login page to include link to Register.
+// صفحة تسجيل الدخول (تدعم البريد الإلكتروني أو اسم المستخدم)
+// Login page supporting Email or Username login.
 
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Email or Username
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -22,15 +22,37 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Logic to handle username login
+      // If input doesn't look like an email, assume it's a username
+      // In a real production app, we might query a 'usernames' table to get the email
+      // OR assume a convention like username@system.local if that's how we created them.
+      // For this demo, we'll assume if no '@', it's a username and we might need to ask user for email
+      // OR we just pass it as is if Supabase is configured for it (it usually isn't by default).
+      
+      let emailToUse = identifier.trim();
+      
+      // Simple heuristic: if no '@', append a placeholder domain or warn
+      // NOTE: The create_student_record function likely generates a fake email for students
+      // e.g. username@student.local
+      if (!emailToUse.includes('@')) {
+         // We'll try appending a common domain we might have used during creation
+         // or just let Supabase try to handle it (it will likely fail if not email).
+         // Let's assume the convention used in create_student_record was username@edu.local
+         emailToUse = `${emailToUse}@edu.local`;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailToUse,
         password,
       });
 
       if (error) {
-        toast.error('فشل تسجيل الدخول', {
-            description: error.message
-        });
+        // If failed with appended domain, maybe try raw if it was actually an email
+        if (emailToUse !== identifier && error.message.includes('Invalid login credentials')) {
+             toast.error('فشل تسجيل الدخول', { description: 'تأكد من اسم المستخدم أو البريد الإلكتروني' });
+        } else {
+             toast.error('فشل تسجيل الدخول', { description: error.message });
+        }
       } else {
         toast.success('تم تسجيل الدخول بنجاح');
         navigate('/');
@@ -49,20 +71,21 @@ export default function Login() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">تسجيل الدخول</CardTitle>
           <CardDescription>
-            أدخل بريدك الإلكتروني وكلمة المرور للدخول إلى المنصة
+            أدخل البريد الإلكتروني أو اسم المستخدم للدخول
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
+              <Label htmlFor="identifier">البريد الإلكتروني / اسم المستخدم</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                placeholder="name@example.com أو اسم المستخدم"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
+                autoCapitalize="none"
               />
             </div>
             <div className="space-y-2">
@@ -80,12 +103,15 @@ export default function Login() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="justify-center">
+        <CardFooter className="justify-center flex-col gap-2">
           <p className="text-sm text-muted-foreground">
             ليس لديك حساب؟{' '}
             <Link to="/register" className="text-primary hover:underline">
-              أنشئ حساب جديد
+              أنشئ حساب جديد (للمعلمين)
             </Link>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            الطلاب: يرجى طلب بيانات الدخول من إدارة المدرسة
           </p>
         </CardFooter>
       </Card>

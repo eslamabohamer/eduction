@@ -34,12 +34,12 @@ export function StudentQuickView() {
 
     setLoading(true);
     try {
-      const data = await studentService.getStudentByCode(code.trim());
-      if (data) {
-        setStudent(data);
+      const response = await studentService.getStudentByCode(code.trim());
+      if (response.success && response.data) {
+        setStudent(response.data);
         toast.success('تم العثور على الطالب');
       } else {
-        toast.error('لم يتم العثور على طالب بهذا الكود');
+        toast.error(response.error?.message || 'لم يتم العثور على طالب بهذا الكود');
         setStudent(null);
       }
     } catch (error) {
@@ -113,7 +113,7 @@ export function StudentQuickView() {
                     <p className="text-xs text-muted-foreground">نسبة الحضور هذا الشهر</p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">المدفوعات</CardTitle>
@@ -139,13 +139,13 @@ export function StudentQuickView() {
 
               {/* Actions */}
               <div className="flex justify-end gap-2">
-                 <Button variant="secondary" onClick={() => {
-                    setStudent(null);
-                    setCode('');
-                    inputRef.current?.focus();
-                 }}>
-                    مسح تالي
-                 </Button>
+                <Button variant="secondary" onClick={() => {
+                  setStudent(null);
+                  setCode('');
+                  inputRef.current?.focus();
+                }}>
+                  مسح تالي
+                </Button>
               </div>
             </div>
           )}

@@ -3,6 +3,7 @@
 // Service for managing homework assignments and submissions.
 
 import { supabase } from '@/lib/supabase';
+import { activityLogService } from './activityLogService';
 
 export interface Homework {
   id: string;
@@ -11,11 +12,12 @@ export interface Homework {
   classroom_id: string;
   due_date: string;
   created_at: string;
+  attachment_url?: string;
   classroom?: {
     name: string;
   };
   // For student view
-  submission?: HomeworkSubmission; 
+  submission?: HomeworkSubmission;
 }
 
 export interface HomeworkSubmission {
@@ -96,7 +98,34 @@ export const homeworkService = {
       .single();
 
     if (error) throw error;
+
+    // Log Activity
+    await activityLogService.logAction('create_homework', 'homework', result.id, {
+      title: data.title,
+      due_date: data.due_date
+    });
+
     return result;
+  },
+
+  async uploadAttachment(file: File): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('homework-attachments')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from('homework-attachments')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   },
 
   async submitHomework(homeworkId: string, content: string) {
@@ -150,5 +179,10 @@ export const homeworkService = {
       .eq('id', submissionId);
 
     if (error) throw error;
+
+    // Log Activity
+    await activityLogService.logAction('grade_homework', 'homework_submission', submissionId, {
+      grade
+    });
   }
 };

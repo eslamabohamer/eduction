@@ -34,6 +34,8 @@ export default function HomeworksPage() {
     classroom_id: '',
     due_date: ''
   });
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -57,18 +59,28 @@ export default function HomeworksPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    setUploading(true);
     try {
+      let attachment_url = undefined;
+      if (file) {
+        attachment_url = await homeworkService.uploadAttachment(file);
+      }
+
       await homeworkService.createHomework({
         ...formData,
-        due_date: new Date(formData.due_date).toISOString()
+        due_date: new Date(formData.due_date).toISOString(),
+        attachment_url
       });
       toast.success('تم إضافة الواجب بنجاح');
       setIsDialogOpen(false);
       setFormData({ title: '', description: '', classroom_id: '', due_date: '' });
+      setFile(null);
       loadData();
     } catch (error) {
       console.error(error);
       toast.error('فشل إضافة الواجب');
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -93,17 +105,17 @@ export default function HomeworksPage() {
             <form onSubmit={handleCreate} className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label>عنوان الواجب</Label>
-                <Input 
-                  required 
+                <Input
+                  required
                   value={formData.title}
-                  onChange={e => setFormData({...formData, title: e.target.value})}
+                  onChange={e => setFormData({ ...formData, title: e.target.value })}
                   placeholder="مثال: حل تمارين ص 50"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label>الفصل الدراسي</Label>
-                <Select onValueChange={val => setFormData({...formData, classroom_id: val})}>
+                <Select onValueChange={val => setFormData({ ...formData, classroom_id: val })}>
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الفصل" />
                   </SelectTrigger>
@@ -117,24 +129,34 @@ export default function HomeworksPage() {
 
               <div className="space-y-2">
                 <Label>تاريخ التسليم</Label>
-                <Input 
+                <Input
                   type="datetime-local"
-                  required 
+                  required
                   value={formData.due_date}
-                  onChange={e => setFormData({...formData, due_date: e.target.value})}
+                  onChange={e => setFormData({ ...formData, due_date: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>الوصف / التعليمات</Label>
-                <Textarea 
+                <Textarea
                   value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
                   placeholder="تفاصيل الواجب..."
                 />
               </div>
 
-              <Button type="submit" className="w-full">حفظ</Button>
+              <div className="space-y-2">
+                <Label>مرفقات (اختياري)</Label>
+                <Input
+                  type="file"
+                  onChange={e => setFile(e.target.files?.[0] || null)}
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={uploading}>
+                {uploading ? 'جاري الرفع...' : 'حفظ'}
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -163,9 +185,15 @@ export default function HomeworksPage() {
                   <Calendar className="h-4 w-4" />
                   <span>تسليم: {format(new Date(hw.due_date), 'PPP', { locale: arEG })}</span>
                 </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
+                {hw.attachment_url && (
+                  <a href={hw.attachment_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                    <BookCheck className="h-4 w-4" />
+                    تحميل المرفق
+                  </a>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full"
                   size="sm"
                   onClick={() => {
                     setGradingHomeworkId(hw.id);
@@ -180,8 +208,8 @@ export default function HomeworksPage() {
         )}
       </div>
 
-      <HomeworkSubmissionsDialog 
-        open={!!gradingHomeworkId} 
+      <HomeworkSubmissionsDialog
+        open={!!gradingHomeworkId}
         onOpenChange={(open) => !open && setGradingHomeworkId(null)}
         homeworkId={gradingHomeworkId}
         homeworkTitle={gradingHomeworkTitle}

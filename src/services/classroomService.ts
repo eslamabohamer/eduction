@@ -22,9 +22,9 @@ export const classroomService = {
     const { data, error } = await supabase
       .from('classrooms')
       .select('*, enrollments(count)');
-    
+
     if (error) throw error;
-    
+
     return data.map(c => ({
       ...c,
       _count: { enrollments: c.enrollments[0]?.count || 0 }
@@ -37,7 +37,7 @@ export const classroomService = {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) throw error;
     return data as Classroom;
   },
@@ -51,6 +51,24 @@ export const classroomService = {
 
     if (error) throw error;
     return result;
+  },
+
+  async updateClassroom(id: string, data: Partial<Classroom>) {
+    const { error } = await supabase
+      .from('classrooms')
+      .update(data)
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async deleteClassroom(id: string) {
+    const { error } = await supabase
+      .from('classrooms')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   },
 
   async getEnrolledStudents(classroomId: string) {
@@ -76,7 +94,7 @@ export const classroomService = {
 
     if (error) {
       // Ignore duplicate key error (already enrolled)
-      if (error.code === '23505') return; 
+      if (error.code === '23505') return;
       throw error;
     }
   },

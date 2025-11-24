@@ -46,5 +46,18 @@ export const notificationService = {
       .eq('is_read', false);
 
     if (error) throw error;
+  },
+
+  /**
+   * Trigger the database function to check and generate notifications
+   * This should be called periodically or on app load
+   */
+  async checkNotifications() {
+    try {
+      const { error } = await supabase.rpc('check_and_send_notifications');
+      if (error) console.error('Failed to check notifications:', error);
+    } catch (err) {
+      console.error('Error checking notifications:', err);
+    }
   }
 };
