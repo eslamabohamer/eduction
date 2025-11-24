@@ -47,9 +47,9 @@ export const examService = {
         submissions:exam_submissions(count)
       `)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
-    
+
     return data.map(exam => ({
       ...exam,
       _count: {
@@ -63,7 +63,7 @@ export const examService = {
    * Create a new exam with questions
    */
   async createExam(
-    examData: Omit<Exam, 'id' | '_count' | 'classroom' | 'status'>, 
+    examData: Omit<Exam, 'id' | '_count' | 'classroom' | 'status'>,
     questions: ExamQuestion[]
   ) {
     // 1. Create Exam
@@ -106,6 +106,24 @@ export const examService = {
     return exam;
   },
 
+  async updateExam(id: string, data: Partial<Exam>) {
+    const { error } = await supabase
+      .from('exams')
+      .update(data)
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async deleteExam(id: string) {
+    const { error } = await supabase
+      .from('exams')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   /**
    * Get full exam details with questions
    */
@@ -121,7 +139,7 @@ export const examService = {
       .single();
 
     if (error) throw error;
-    
+
     // Parse options JSON back to array
     if (data.questions) {
       data.questions = data.questions.map((q: any) => ({

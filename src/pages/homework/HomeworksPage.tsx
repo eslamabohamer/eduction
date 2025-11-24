@@ -12,17 +12,37 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Calendar, BookCheck } from 'lucide-react';
+import { Plus, Calendar, BookCheck, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { arEG } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { HomeworkSubmissionsDialog } from '@/components/homework/HomeworkSubmissionsDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function HomeworksPage() {
   const [homeworks, setHomeworks] = useState<Homework[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [homeworkToEdit, setHomeworkToEdit] = useState<Homework | null>(null);
+  const [homeworkToDelete, setHomeworkToDelete] = useState<Homework | null>(null);
 
   // Grading Dialog State
   const [gradingHomeworkId, setGradingHomeworkId] = useState<string | null>(null);
@@ -83,6 +103,51 @@ export default function HomeworksPage() {
       setUploading(false);
     }
   }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!homeworkToEdit) return;
+
+    try {
+      await homeworkService.updateHomework(homeworkToEdit.id, {
+        title: formData.title,
+        description: formData.description,
+        classroom_id: formData.classroom_id,
+        due_date: new Date(formData.due_date).toISOString()
+      });
+      toast.success('تم تحديث الواجب بنجاح');
+      setIsEditDialogOpen(false);
+      setHomeworkToEdit(null);
+      loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error('فشل تحديث الواجب');
+    }
+  }
+
+  async function handleDelete() {
+    if (!homeworkToDelete) return;
+    try {
+      await homeworkService.deleteHomework(homeworkToDelete.id);
+      toast.success('تم حذف الواجب بنجاح');
+      setHomeworkToDelete(null);
+      loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error('فشل حذف الواجب');
+    }
+  }
+
+  const openEditDialog = (hw: Homework) => {
+    setHomeworkToEdit(hw);
+    setFormData({
+      title: hw.title,
+      description: hw.description,
+      classroom_id: hw.classroom_id,
+      due_date: hw.due_date.slice(0, 16) // Format for datetime-local input
+    });
+    setIsEditDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -174,9 +239,30 @@ export default function HomeworksPage() {
           </div>
         ) : (
           homeworks.map((hw) => (
-            <Card key={hw.id}>
+            <Card key={hw.id} className="relative group">
               <CardHeader>
-                <CardTitle className="text-lg line-clamp-1">{hw.title}</CardTitle>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg line-clamp-1">{hw.title}</CardTitle>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">فتح القائمة</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEditDialog(hw)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        تعديل
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setHomeworkToDelete(hw)} className="text-red-600">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        حذف
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 <p className="text-sm text-muted-foreground">{hw.classroom?.name}</p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -207,6 +293,80 @@ export default function HomeworksPage() {
           ))
         )}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تعديل الواجب</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>عنوان الواجب</Label>
+              <Input
+                required
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>الفصل الدراسي</Label>
+              <Select
+                value={formData.classroom_id}
+                onValueChange={val => setFormData({ ...formData, classroom_id: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الفصل" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classrooms.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>تاريخ التسليم</Label>
+              <Input
+                type="datetime-local"
+                required
+                value={formData.due_date}
+                onChange={e => setFormData({ ...formData, due_date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>الوصف / التعليمات</Label>
+              <Textarea
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+
+            <Button type="submit" className="w-full">حفظ التعديلات</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!homeworkToDelete} onOpenChange={(open) => !open && setHomeworkToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد تماماً؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف الواجب <strong>{homeworkToDelete?.title}</strong> وجميع التسليمات المرتبطة به. لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <HomeworkSubmissionsDialog
         open={!!gradingHomeworkId}

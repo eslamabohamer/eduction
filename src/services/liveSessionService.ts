@@ -53,6 +53,24 @@ export const liveSessionService = {
     return result;
   },
 
+  async updateSession(id: string, data: Partial<LiveSession>) {
+    const { error } = await supabase
+      .from('live_sessions')
+      .update(data)
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async deleteSession(id: string) {
+    const { error } = await supabase
+      .from('live_sessions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   /**
    * Record student attendance when joining
    */

@@ -108,6 +108,24 @@ export const homeworkService = {
     return result;
   },
 
+  async updateHomework(id: string, data: Partial<Homework>) {
+    const { error } = await supabase
+      .from('homework')
+      .update(data)
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async deleteHomework(id: string) {
+    const { error } = await supabase
+      .from('homework')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   async uploadAttachment(file: File): Promise<string> {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;

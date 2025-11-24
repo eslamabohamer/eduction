@@ -42,6 +42,24 @@ export const videoLessonService = {
     return result;
   },
 
+  async updateVideo(id: string, data: Partial<VideoLesson>) {
+    const { error } = await supabase
+      .from('video_lessons')
+      .update(data)
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async deleteVideo(id: string) {
+    const { error } = await supabase
+      .from('video_lessons')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   /**
    * Track video progress
    */
