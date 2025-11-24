@@ -15,34 +15,69 @@ export interface TenantStats {
 
 import { ServiceResponse } from '@/types/service';
 
+export interface PlatformStats {
+  total_users: number;
+  total_students: number;
+  total_teachers: number;
+  total_revenue: number;
+  active_tenants: number;
+  monthly_growth: number;
+}
+
 export const adminService = {
   /**
    * Get platform-wide KPIs
    * الحصول على مؤشرات الأداء الرئيسية للمنصة
    */
-  async getPlatformStats(): Promise<ServiceResponse<any>> {
+  /**
+   * Get Platform Statistics (KPIs)
+   */
+  async getPlatformStats(): Promise<ServiceResponse<PlatformStats>> {
     try {
-      // Parallel fetching for performance
-      const [tenants, students, subscriptions, revenue] = await Promise.all([
-        supabase.from('users').select('id', { count: 'exact' }).eq('role', 'Teacher'),
-        supabase.from('student_profiles').select('id', { count: 'exact' }),
-        supabase.from('subscriptions').select('id', { count: 'exact' }).eq('status', 'active'),
-        supabase.from('invoices').select('amount').eq('status', 'paid')
-      ]);
+      const { data, error } = await supabase.rpc('get_admin_kpis');
+      if (error) return { success: false, error: { message: error.message, code: error.code } };
 
-      const totalRevenue = revenue.data?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
-
+      // Map RPC result to PlatformStats interface
+      // Note: RPC returns snake_case, interface might need adjustment or mapping
       return {
         success: true,
         data: {
-          totalTenants: tenants.count || 0,
-          totalStudents: students.count || 0,
-          activeSubscriptions: subscriptions.count || 0,
-          totalRevenue
+          total_users: data.total_users,
+          total_students: data.total_students,
+          total_teachers: data.total_teachers,
+          total_revenue: data.total_revenue,
+          active_tenants: data.active_tenants,
+          monthly_growth: 0 // Placeholder or calculated from getGrowthStats if needed here
         }
       };
-    } catch (error: any) {
-      return { success: false, error: { message: error.message } };
+    } catch (err: any) {
+      return { success: false, error: { message: err.message, code: 'UNKNOWN_ERROR' } };
+    }
+  },
+
+  /**
+   * Get Monthly Growth Stats
+   */
+  async getGrowthStats(): Promise<ServiceResponse<{ revenue_growth: any[], user_growth: any[] }>> {
+    try {
+      const { data, error } = await supabase.rpc('get_monthly_growth');
+      if (error) return { success: false, error: { message: error.message, code: error.code } };
+      return { success: true, data };
+    } catch (err: any) {
+      return { success: false, error: { message: err.message, code: 'UNKNOWN_ERROR' } };
+    }
+  },
+
+  /**
+   * Get User Distribution
+   */
+  async getUserDistribution(): Promise<ServiceResponse<any[]>> {
+    try {
+      const { data, error } = await supabase.rpc('get_user_distribution');
+      if (error) return { success: false, error: { message: error.message, code: error.code } };
+      return { success: true, data };
+    } catch (err: any) {
+      return { success: false, error: { message: err.message, code: 'UNKNOWN_ERROR' } };
     }
   },
 
@@ -78,12 +113,13 @@ export const adminService = {
       // This would typically update a 'status' column in users or tenants table
       // For now, we'll assume we have such a column or use metadata
       // Using a mock update for demonstration if column doesn't exist in schema yet
-      /*
       const { error } = await supabase
         .from('users')
-        .update({ status }) 
+        .update({ status })
         .eq('id', userId);
-      */
+
+      if (error) throw error;
+
       console.log(`[Admin] Set tenant ${userId} to ${status}`);
       return { success: true };
     } catch (error: any) {
