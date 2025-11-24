@@ -55,13 +55,26 @@ export default function LiveSessionsPage() {
   }, []);
 
   async function loadData() {
+    setLoading(true);
     try {
-      const [sessionsData, classroomsData] = await Promise.all([
+      const [sessionsResponse, classroomsResponse] = await Promise.all([
         liveSessionService.getSessions(),
         classroomService.getClassrooms()
       ]);
-      setSessions(sessionsData);
-      setClassrooms(classroomsData as any);
+
+      if (sessionsResponse.success && sessionsResponse.data) {
+        setSessions(sessionsResponse.data);
+      } else {
+        console.error(sessionsResponse.error);
+        toast.error('فشل تحميل الجلسات');
+      }
+
+      if (classroomsResponse.success && classroomsResponse.data) {
+        setClassrooms(classroomsResponse.data);
+      } else {
+        console.error(classroomsResponse.error);
+        toast.error('فشل تحميل الفصول');
+      }
     } catch (error) {
       console.error(error);
       toast.error('فشل تحميل البيانات');
@@ -72,19 +85,20 @@ export default function LiveSessionsPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    try {
-      await liveSessionService.createSession({
-        ...formData,
-        start_time: new Date(formData.start_time).toISOString(),
-        end_time: new Date(formData.end_time).toISOString(),
-      });
+    const response = await liveSessionService.createSession({
+      ...formData,
+      start_time: new Date(formData.start_time).toISOString(),
+      end_time: new Date(formData.end_time).toISOString(),
+    });
+
+    if (response.success) {
       toast.success('تم جدولة البث بنجاح');
       setIsDialogOpen(false);
       setFormData({ title: '', classroom_id: '', start_time: '', end_time: '', stream_url: '' });
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل جدولة البث');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل جدولة البث');
     }
   }
 
@@ -92,32 +106,35 @@ export default function LiveSessionsPage() {
     e.preventDefault();
     if (!sessionToEdit) return;
 
-    try {
-      await liveSessionService.updateSession(sessionToEdit.id, {
-        ...formData,
-        start_time: new Date(formData.start_time).toISOString(),
-        end_time: new Date(formData.end_time).toISOString(),
-      });
+    const response = await liveSessionService.updateSession(sessionToEdit.id, {
+      ...formData,
+      start_time: new Date(formData.start_time).toISOString(),
+      end_time: new Date(formData.end_time).toISOString(),
+    });
+
+    if (response.success) {
       toast.success('تم تحديث البث بنجاح');
       setIsEditDialogOpen(false);
       setSessionToEdit(null);
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تحديث البث');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل تحديث البث');
     }
   }
 
   async function handleDelete() {
     if (!sessionToDelete) return;
-    try {
-      await liveSessionService.deleteSession(sessionToDelete.id);
+
+    const response = await liveSessionService.deleteSession(sessionToDelete.id);
+
+    if (response.success) {
       toast.success('تم حذف البث بنجاح');
       setSessionToDelete(null);
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل حذف البث');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل حذف البث');
     }
   }
 

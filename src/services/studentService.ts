@@ -44,18 +44,24 @@ export const studentService = {
    * Get single student details
    * جلب تفاصيل طالب واحد
    */
-  async getStudentById(id: string) {
-    const { data, error } = await supabase
-      .from('student_profiles')
-      .select(`
-        *,
-        user:users(*)
-      `)
-      .eq('id', id)
-      .single();
+  async getStudentById(id: string): Promise<ServiceResponse<StudentWithUser>> {
+    try {
+      const { data, error } = await supabase
+        .from('student_profiles')
+        .select(`
+          *,
+          user:users(*)
+        `)
+        .eq('id', id)
+        .single();
 
-    if (error) throw error;
-    return data as StudentWithUser;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as StudentWithUser };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   /**
@@ -278,146 +284,196 @@ export const studentService = {
 
   // --- Attendance Operations (عمليات الحضور) ---
 
-  async getAttendance(studentId: string) {
-    const { data, error } = await supabase
-      .from('attendance_records')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('date', { ascending: false });
+  async getAttendance(studentId: string): Promise<ServiceResponse<AttendanceRecord[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('date', { ascending: false });
 
-    if (error) throw error;
-    return data as AttendanceRecord[];
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as AttendanceRecord[] };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
-  async addAttendance(record: Omit<AttendanceRecord, 'id' | 'created_at'>) {
-    // Fetch student's tenant_id
-    const { data: student } = await supabase
-      .from('student_profiles')
-      .select('tenant_id')
-      .eq('id', record.student_id)
-      .single();
+  async addAttendance(record: Omit<AttendanceRecord, 'id' | 'created_at'>): Promise<ServiceResponse<void>> {
+    try {
+      // Fetch student's tenant_id
+      const { data: student } = await supabase
+        .from('student_profiles')
+        .select('tenant_id')
+        .eq('id', record.student_id)
+        .single();
 
-    if (!student) throw new Error('Student not found');
+      if (!student) return { success: false, error: { message: 'Student not found' } };
 
-    const { error } = await supabase
-      .from('attendance_records')
-      .insert({
-        ...record,
-        tenant_id: student.tenant_id
-      });
+      const { error } = await supabase
+        .from('attendance_records')
+        .insert({
+          ...record,
+          tenant_id: student.tenant_id
+        });
 
-    if (error) throw error;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   // --- Behavior Operations (عمليات السلوك) ---
 
-  async getBehaviorNotes(studentId: string) {
-    const { data, error } = await supabase
-      .from('behavior_notes')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('created_at', { ascending: false });
+  async getBehaviorNotes(studentId: string): Promise<ServiceResponse<BehaviorNote[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('behavior_notes')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data as BehaviorNote[];
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as BehaviorNote[] };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
-  async addBehaviorNote(note: Omit<BehaviorNote, 'id' | 'created_at' | 'created_by'>) {
-    // Fetch student's tenant_id
-    const { data: student } = await supabase
-      .from('student_profiles')
-      .select('tenant_id')
-      .eq('id', note.student_id)
-      .single();
+  async addBehaviorNote(note: Omit<BehaviorNote, 'id' | 'created_at' | 'created_by'>): Promise<ServiceResponse<void>> {
+    try {
+      // Fetch student's tenant_id
+      const { data: student } = await supabase
+        .from('student_profiles')
+        .select('tenant_id')
+        .eq('id', note.student_id)
+        .single();
 
-    if (!student) throw new Error('Student not found');
+      if (!student) return { success: false, error: { message: 'Student not found' } };
 
-    const { error } = await supabase
-      .from('behavior_notes')
-      .insert({
-        ...note,
-        tenant_id: student.tenant_id
-      });
+      const { error } = await supabase
+        .from('behavior_notes')
+        .insert({
+          ...note,
+          tenant_id: student.tenant_id
+        });
 
-    if (error) throw error;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   // --- Financial Operations (العمليات المالية) ---
 
-  async getFinancialRecords(studentId: string) {
-    const { data, error } = await supabase
-      .from('financial_records')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('date', { ascending: false });
+  async getFinancialRecords(studentId: string): Promise<ServiceResponse<FinancialRecord[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('financial_records')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('date', { ascending: false });
 
-    if (error) throw error;
-    return data as FinancialRecord[];
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as FinancialRecord[] };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
-  async addFinancialRecord(record: Omit<FinancialRecord, 'id' | 'created_at'>) {
-    // Fetch student's tenant_id
-    const { data: student } = await supabase
-      .from('student_profiles')
-      .select('tenant_id')
-      .eq('id', record.student_id)
-      .single();
+  async addFinancialRecord(record: Omit<FinancialRecord, 'id' | 'created_at'>): Promise<ServiceResponse<void>> {
+    try {
+      // Fetch student's tenant_id
+      const { data: student } = await supabase
+        .from('student_profiles')
+        .select('tenant_id')
+        .eq('id', record.student_id)
+        .single();
 
-    if (!student) throw new Error('Student not found');
+      if (!student) return { success: false, error: { message: 'Student not found' } };
 
-    const { error } = await supabase
-      .from('financial_records')
-      .insert({
-        ...record,
-        tenant_id: student.tenant_id
-      });
+      const { error } = await supabase
+        .from('financial_records')
+        .insert({
+          ...record,
+          tenant_id: student.tenant_id
+        });
 
-    if (error) throw error;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   // --- Academic Stats (الإحصائيات الأكاديمية) ---
 
-  async getAcademicStats(studentId: string) {
-    // Get Exam Submissions
-    const { data: exams, error: examError } = await supabase
-      .from('exam_submissions')
-      .select(`
-        score,
-        exam:exams(title, total_marks)
-      `)
-      .eq('student_id', studentId);
+  async getAcademicStats(studentId: string): Promise<ServiceResponse<any>> {
+    try {
+      // Get Exam Submissions
+      const { data: exams, error: examError } = await supabase
+        .from('exam_submissions')
+        .select(`
+          score,
+          exam:exams(title, total_marks)
+        `)
+        .eq('student_id', studentId);
 
-    if (examError) throw examError;
+      if (examError) {
+        return { success: false, error: { message: examError.message, code: examError.code } };
+      }
 
-    // Get Homework Submissions
-    const { data: homeworks, error: hwError } = await supabase
-      .from('homework_submissions')
-      .select(`
-        grade,
-        homework:homework(title)
-      `)
-      .eq('student_id', studentId);
+      // Get Homework Submissions
+      const { data: homeworks, error: hwError } = await supabase
+        .from('homework_submissions')
+        .select(`
+          grade,
+          homework:homework(title)
+        `)
+        .eq('student_id', studentId);
 
-    if (hwError) throw hwError;
+      if (hwError) {
+        return { success: false, error: { message: hwError.message, code: hwError.code } };
+      }
 
-    return {
-      exams: exams.map(e => {
-        const examData = Array.isArray(e.exam) ? e.exam[0] : e.exam;
-        return {
-          name: examData?.title || 'Unknown',
-          score: e.score,
-          total: examData?.total_marks || 100,
-          percentage: (e.score / (examData?.total_marks || 100)) * 100
-        };
-      }),
-      homeworks: homeworks.map(h => {
-        const hwData = Array.isArray(h.homework) ? h.homework[0] : h.homework;
-        return {
-          name: hwData?.title || 'Unknown',
-          score: h.grade || 0,
-          total: 10
-        };
-      })
-    };
+      return {
+        success: true,
+        data: {
+          exams: exams.map(e => {
+            const examData = Array.isArray(e.exam) ? e.exam[0] : e.exam;
+            return {
+              name: examData?.title || 'Unknown',
+              score: e.score,
+              total: examData?.total_marks || 100,
+              percentage: (e.score / (examData?.total_marks || 100)) * 100
+            };
+          }),
+          homeworks: homeworks.map(h => {
+            const hwData = Array.isArray(h.homework) ? h.homework[0] : h.homework;
+            return {
+              name: hwData?.title || 'Unknown',
+              score: h.grade || 0,
+              total: 10
+            };
+          })
+        }
+      };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   }
 };

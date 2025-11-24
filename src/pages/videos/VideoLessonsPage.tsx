@@ -52,13 +52,26 @@ export default function VideoLessonsPage() {
   }, []);
 
   async function loadData() {
+    setLoading(true);
     try {
-      const [videosData, classroomsData] = await Promise.all([
+      const [videosResponse, classroomsResponse] = await Promise.all([
         videoLessonService.getVideos(),
         classroomService.getClassrooms()
       ]);
-      setVideos(videosData);
-      setClassrooms(classroomsData as any);
+
+      if (videosResponse.success && videosResponse.data) {
+        setVideos(videosResponse.data);
+      } else {
+        console.error(videosResponse.error);
+        toast.error('فشل تحميل الفيديوهات');
+      }
+
+      if (classroomsResponse.success && classroomsResponse.data) {
+        setClassrooms(classroomsResponse.data);
+      } else {
+        console.error(classroomsResponse.error);
+        toast.error('فشل تحميل الفصول');
+      }
     } catch (error) {
       console.error(error);
       toast.error('فشل تحميل البيانات');
@@ -69,15 +82,16 @@ export default function VideoLessonsPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    try {
-      await videoLessonService.createVideo(formData);
+    const response = await videoLessonService.createVideo(formData);
+
+    if (response.success) {
       toast.success('تم إضافة الفيديو بنجاح');
       setIsDialogOpen(false);
       setFormData({ title: '', classroom_id: '', video_url: '', provider_type: 'youtube' });
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل إضافة الفيديو');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل إضافة الفيديو');
     }
   }
 
@@ -85,28 +99,31 @@ export default function VideoLessonsPage() {
     e.preventDefault();
     if (!videoToEdit) return;
 
-    try {
-      await videoLessonService.updateVideo(videoToEdit.id, formData);
+    const response = await videoLessonService.updateVideo(videoToEdit.id, formData);
+
+    if (response.success) {
       toast.success('تم تحديث الفيديو بنجاح');
       setIsEditDialogOpen(false);
       setVideoToEdit(null);
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تحديث الفيديو');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل تحديث الفيديو');
     }
   }
 
   async function handleDelete() {
     if (!videoToDelete) return;
-    try {
-      await videoLessonService.deleteVideo(videoToDelete.id);
+
+    const response = await videoLessonService.deleteVideo(videoToDelete.id);
+
+    if (response.success) {
       toast.success('تم حذف الفيديو بنجاح');
       setVideoToDelete(null);
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل حذف الفيديو');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل حذف الفيديو');
     }
   }
 

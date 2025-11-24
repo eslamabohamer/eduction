@@ -51,28 +51,29 @@ export default function ClassroomsPage() {
   }, []);
 
   async function loadClassrooms() {
-    try {
-      const data = await classroomService.getClassrooms();
-      setClassrooms(data as any);
-    } catch (error) {
-      console.error(error);
+    setLoading(true);
+    const response = await classroomService.getClassrooms();
+    if (response.success && response.data) {
+      setClassrooms(response.data);
+    } else {
+      console.error(response.error);
       toast.error('فشل تحميل الفصول');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    try {
-      await classroomService.createClassroom(formData);
+    const response = await classroomService.createClassroom(formData);
+
+    if (response.success) {
       toast.success('تم إنشاء الفصل بنجاح');
       setIsDialogOpen(false);
       setFormData({ name: '', level: '', grade: '' });
       loadClassrooms();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل إنشاء الفصل');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل إنشاء الفصل');
     }
   }
 
@@ -80,28 +81,31 @@ export default function ClassroomsPage() {
     e.preventDefault();
     if (!classroomToEdit) return;
 
-    try {
-      await classroomService.updateClassroom(classroomToEdit.id, formData);
+    const response = await classroomService.updateClassroom(classroomToEdit.id, formData);
+
+    if (response.success) {
       toast.success('تم تحديث الفصل بنجاح');
       setIsEditDialogOpen(false);
       setClassroomToEdit(null);
       loadClassrooms();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تحديث الفصل');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل تحديث الفصل');
     }
   }
 
   async function handleDelete() {
     if (!classroomToDelete) return;
-    try {
-      await classroomService.deleteClassroom(classroomToDelete.id);
+
+    const response = await classroomService.deleteClassroom(classroomToDelete.id);
+
+    if (response.success) {
       toast.success('تم حذف الفصل بنجاح');
       setClassroomToDelete(null);
       loadClassrooms();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل حذف الفصل');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل حذف الفصل');
     }
   }
 

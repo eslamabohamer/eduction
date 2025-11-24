@@ -3,7 +3,9 @@
 // Update classroom service to manage enrollments.
 
 import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { StudentWithUser } from './studentService';
+import { ServiceResponse } from '@/types/service';
 
 export interface Classroom {
   id: string;
@@ -18,94 +20,147 @@ export interface Classroom {
 }
 
 export const classroomService = {
-  async getClassrooms() {
-    const { data, error } = await supabase
-      .from('classrooms')
-      .select('*, enrollments(count)');
+  async getClassrooms(): Promise<ServiceResponse<Classroom[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('classrooms')
+        .select('*, enrollments(count)');
 
-    if (error) throw error;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
 
-    return data.map(c => ({
-      ...c,
-      _count: { enrollments: c.enrollments[0]?.count || 0 }
-    }));
-  },
+      const classrooms = data.map(c => ({
+        ...c,
+        _count: { enrollments: c.enrollments[0]?.count || 0 }
+      }));
 
-  async getClassroomById(id: string) {
-    const { data, error } = await supabase
-      .from('classrooms')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    return data as Classroom;
-  },
-
-  async createClassroom(data: { name: string; level: string; grade: string }) {
-    const { data: result, error } = await supabase
-      .from('classrooms')
-      .insert(data)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return result;
-  },
-
-  async updateClassroom(id: string, data: Partial<Classroom>) {
-    const { error } = await supabase
-      .from('classrooms')
-      .update(data)
-      .eq('id', id);
-
-    if (error) throw error;
-  },
-
-  async deleteClassroom(id: string) {
-    const { error } = await supabase
-      .from('classrooms')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-  },
-
-  async getEnrolledStudents(classroomId: string) {
-    const { data, error } = await supabase
-      .from('enrollments')
-      .select(`
-        student:student_profiles (
-          *,
-          user:users (*)
-        )
-      `)
-      .eq('classroom_id', classroomId);
-
-    if (error) throw error;
-    // Flatten structure
-    return data.map(item => item.student) as unknown as StudentWithUser[];
-  },
-
-  async enrollStudent(classroomId: string, studentId: string) {
-    const { error } = await supabase
-      .from('enrollments')
-      .insert({ classroom_id: classroomId, student_id: studentId });
-
-    if (error) {
-      // Ignore duplicate key error (already enrolled)
-      if (error.code === '23505') return;
-      throw error;
+      return { success: true, data: classrooms };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
     }
   },
 
-  async removeStudent(classroomId: string, studentId: string) {
-    const { error } = await supabase
-      .from('enrollments')
-      .delete()
-      .eq('classroom_id', classroomId)
-      .eq('student_id', studentId);
+  async getClassroomById(id: string): Promise<ServiceResponse<Classroom>> {
+    try {
+      const { data, error } = await supabase
+        .from('classrooms')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-    if (error) throw error;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as Classroom };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async createClassroom(data: { name: string; level: string; grade: string }): Promise<ServiceResponse<Classroom>> {
+    try {
+      const { data: result, error } = await supabase
+        .from('classrooms')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: result };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async updateClassroom(id: string, data: Partial<Classroom>): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('classrooms')
+        .update(data)
+        .eq('id', id);
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async deleteClassroom(id: string): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('classrooms')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async getEnrolledStudents(classroomId: string): Promise<ServiceResponse<StudentWithUser[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('enrollments')
+        .select(`
+          student:student_profiles (
+            *,
+            user:users (*)
+          )
+        `)
+        .eq('classroom_id', classroomId);
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      // Flatten structure
+      const students = data.map(item => item.student) as unknown as StudentWithUser[];
+      return { success: true, data: students };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async enrollStudent(classroomId: string, studentId: string): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('enrollments')
+        .insert({ classroom_id: classroomId, student_id: studentId });
+
+      if (error) {
+        // Ignore duplicate key error (already enrolled)
+        if (error.code === '23505') return { success: true };
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async removeStudent(classroomId: string, studentId: string): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('enrollments')
+        .delete()
+        .eq('classroom_id', classroomId)
+        .eq('student_id', studentId);
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   }
 };

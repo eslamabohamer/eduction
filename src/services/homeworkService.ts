@@ -4,6 +4,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { activityLogService } from './activityLogService';
+import { ServiceResponse } from '@/types/service';
 
 export interface Homework {
   id: string;
@@ -37,17 +38,23 @@ export interface HomeworkSubmission {
 }
 
 export const homeworkService = {
-  async getHomeworks() {
-    const { data, error } = await supabase
-      .from('homework')
-      .select(`
-        *,
-        classroom:classrooms(name)
-      `)
-      .order('due_date', { ascending: true });
+  async getHomeworks(): Promise<ServiceResponse<Homework[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('homework')
+        .select(`
+          *,
+          classroom:classrooms(name)
+        `)
+        .order('due_date', { ascending: true });
 
-    if (error) throw error;
-    return data as Homework[];
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true, data: data as Homework[] };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   /**
@@ -90,60 +97,84 @@ export const homeworkService = {
     })) as Homework[];
   },
 
-  async createHomework(data: Omit<Homework, 'id' | 'created_at' | 'classroom'>) {
-    const { data: result, error } = await supabase
-      .from('homework')
-      .insert(data)
-      .select()
-      .single();
+  async createHomework(data: Omit<Homework, 'id' | 'created_at' | 'classroom'>): Promise<ServiceResponse<Homework>> {
+    try {
+      const { data: result, error } = await supabase
+        .from('homework')
+        .insert(data)
+        .select()
+        .single();
 
-    if (error) throw error;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
 
-    // Log Activity
-    await activityLogService.logAction('create_homework', 'homework', result.id, {
-      title: data.title,
-      due_date: data.due_date
-    });
+      // Log Activity
+      await activityLogService.logAction('create_homework', 'homework', result.id, {
+        title: data.title,
+        due_date: data.due_date
+      });
 
-    return result;
-  },
-
-  async updateHomework(id: string, data: Partial<Homework>) {
-    const { error } = await supabase
-      .from('homework')
-      .update(data)
-      .eq('id', id);
-
-    if (error) throw error;
-  },
-
-  async deleteHomework(id: string) {
-    const { error } = await supabase
-      .from('homework')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-  },
-
-  async uploadAttachment(file: File): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('homework-attachments')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      throw uploadError;
+      return { success: true, data: result };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
     }
+  },
 
-    const { data } = supabase.storage
-      .from('homework-attachments')
-      .getPublicUrl(filePath);
+  async updateHomework(id: string, data: Partial<Homework>): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('homework')
+        .update(data)
+        .eq('id', id);
 
-    return data.publicUrl;
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async deleteHomework(id: string): Promise<ServiceResponse<void>> {
+    try {
+      const { error } = await supabase
+        .from('homework')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        return { success: false, error: { message: error.message, code: error.code } };
+      }
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
+  },
+
+  async uploadAttachment(file: File): Promise<ServiceResponse<string>> {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('homework-attachments')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        return { success: false, error: { message: uploadError.message } };
+      }
+
+      const { data } = supabase.storage
+        .from('homework-attachments')
+        .getPublicUrl(filePath);
+
+      return { success: true, data: data.publicUrl };
+    } catch (error: any) {
+      return { success: false, error: { message: error.message } };
+    }
   },
 
   async submitHomework(homeworkId: string, content: string) {

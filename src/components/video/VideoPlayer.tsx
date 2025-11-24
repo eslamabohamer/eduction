@@ -14,7 +14,7 @@ export function VideoPlayer({ videoId, storagePath, title, onComplete }: Props) 
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const progressInterval = useRef<NodeJS.Timeout>();
+    const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         loadVideo();
@@ -27,13 +27,18 @@ export function VideoPlayer({ videoId, storagePath, title, onComplete }: Props) 
         try {
             setLoading(true);
             setError(null);
-            const url = await videoService.getVideoUrl(storagePath);
-            setVideoUrl(url);
+            const urlResponse = await videoService.getVideoUrl(storagePath);
+            if (urlResponse.success && urlResponse.data) {
+                setVideoUrl(urlResponse.data);
+            } else {
+                setError('فشل تحميل رابط الفيديو');
+                return;
+            }
 
             // Load initial progress
-            const progress = await videoService.getProgress(videoId);
-            if (progress && videoRef.current) {
-                videoRef.current.currentTime = progress.progress_seconds;
+            const progressResponse = await videoService.getProgress(videoId);
+            if (progressResponse.success && progressResponse.data && videoRef.current) {
+                videoRef.current.currentTime = progressResponse.data.progress_seconds;
             }
         } catch (err) {
             console.error(err);

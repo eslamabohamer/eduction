@@ -30,22 +30,21 @@ export default function StudentCourseView() {
     }, [selectedCourse]);
 
     async function loadCourses() {
-        try {
-            const data = await courseService.getCourses();
+        const response = await courseService.getCourses();
+        if (response.success && response.data) {
             // Filter for published courses only (though RLS should handle this too)
-            setCourses(data.filter(c => c.is_published));
-        } catch (error) {
+            setCourses(response.data.filter(c => c.is_published));
+        } else {
             toast.error('فشل تحميل الدورات');
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     }
 
     async function loadCourseStructure(courseId: string) {
-        try {
-            const data = await courseService.getCourseStructure(courseId);
-            setModules(data);
-        } catch (error) {
+        const response = await courseService.getCourseStructure(courseId);
+        if (response.success && response.data) {
+            setModules(response.data);
+        } else {
             toast.error('فشل تحميل محتوى الدورة');
         }
     }

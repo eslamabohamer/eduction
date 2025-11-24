@@ -59,45 +59,35 @@ export default function StudentsPage() {
   }, []);
 
   async function loadStudents() {
-    try {
-      const response = await studentService.getStudents();
-      if (response.success && response.data) {
-        setStudents(response.data);
-      } else {
-        toast.error(response.error?.message || 'فشل تحميل قائمة الطلاب');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('حدث خطأ غير متوقع');
-    } finally {
-      setLoading(false);
+    setLoading(true);
+    const response = await studentService.getStudents();
+    if (response.success && response.data) {
+      setStudents(response.data);
+    } else {
+      toast.error(response.error?.message || 'فشل تحميل قائمة الطلاب');
     }
+    setLoading(false);
   }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    try {
-      const response = await studentService.createStudent(formData);
+    const response = await studentService.createStudent(formData);
 
-      if (response.success && response.data) {
-        toast.success('تم إضافة الطالب بنجاح');
-        setIsDialogOpen(false);
-        setCreatedCredentials({
-          username: formData.username,
-          password: response.data.password,
-          parentCode: response.data.parentCode
-        });
-        setFormData({
-          name: '', username: '', grade: '', level: '',
-          parent_name: '', parent_phone: '', address: ''
-        });
-        loadStudents();
-      } else {
-        toast.error(response.error?.message || 'فشل إضافة الطالب');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('حدث خطأ غير متوقع');
+    if (response.success && response.data) {
+      toast.success('تم إضافة الطالب بنجاح');
+      setIsDialogOpen(false);
+      setCreatedCredentials({
+        username: formData.username,
+        password: response.data.password,
+        parentCode: response.data.parentCode
+      });
+      setFormData({
+        name: '', username: '', grade: '', level: '',
+        parent_name: '', parent_phone: '', address: ''
+      });
+      loadStudents();
+    } else {
+      toast.error(response.error?.message || 'فشل إضافة الطالب');
     }
   }
 
@@ -105,44 +95,34 @@ export default function StudentsPage() {
     e.preventDefault();
     if (!studentToEdit) return;
 
-    try {
-      const response = await studentService.updateStudent(studentToEdit.id, {
-        name: formData.name,
-        grade: formData.grade,
-        level: formData.level,
-        parent_name: formData.parent_name,
-        parent_phone: formData.parent_phone,
-        address: formData.address
-      });
+    const response = await studentService.updateStudent(studentToEdit.id, {
+      name: formData.name,
+      grade: formData.grade,
+      level: formData.level,
+      parent_name: formData.parent_name,
+      parent_phone: formData.parent_phone,
+      address: formData.address
+    });
 
-      if (response.success) {
-        toast.success('تم تحديث بيانات الطالب بنجاح');
-        setIsEditDialogOpen(false);
-        setStudentToEdit(null);
-        loadStudents();
-      } else {
-        toast.error(response.error?.message || 'فشل تحديث البيانات');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('حدث خطأ أثناء التحديث');
+    if (response.success) {
+      toast.success('تم تحديث بيانات الطالب بنجاح');
+      setIsEditDialogOpen(false);
+      setStudentToEdit(null);
+      loadStudents();
+    } else {
+      toast.error(response.error?.message || 'فشل تحديث البيانات');
     }
   }
 
   async function handleDelete() {
     if (!studentToDelete) return;
-    try {
-      const response = await studentService.deleteStudent(studentToDelete.id);
-      if (response.success) {
-        toast.success('تم حذف الطالب بنجاح');
-        setStudentToDelete(null);
-        loadStudents();
-      } else {
-        toast.error(response.error?.message || 'فشل حذف الطالب');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('حدث خطأ أثناء الحذف');
+    const response = await studentService.deleteStudent(studentToDelete.id);
+    if (response.success) {
+      toast.success('تم حذف الطالب بنجاح');
+      setStudentToDelete(null);
+      loadStudents();
+    } else {
+      toast.error(response.error?.message || 'فشل حذف الطالب');
     }
   }
 

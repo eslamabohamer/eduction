@@ -55,27 +55,29 @@ export default function ExamsPage() {
   }, []);
 
   async function loadExams() {
-    try {
-      const data = await examService.getExams();
-      setExams(data as any);
-    } catch (error) {
-      console.error(error);
+    setLoading(true);
+    const response = await examService.getExams();
+    if (response.success && response.data) {
+      setExams(response.data);
+    } else {
+      console.error(response.error);
       toast.error('فشل تحميل الاختبارات');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   async function handleDelete() {
     if (!examToDelete) return;
-    try {
-      await examService.deleteExam(examToDelete.id);
+
+    const response = await examService.deleteExam(examToDelete.id);
+
+    if (response.success) {
       toast.success('تم حذف الاختبار بنجاح');
       setExamToDelete(null);
       loadExams();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل حذف الاختبار');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل حذف الاختبار');
     }
   }
 
@@ -96,19 +98,20 @@ export default function ExamsPage() {
     e.preventDefault();
     if (!examToEdit) return;
 
-    try {
-      await examService.updateExam(examToEdit.id, {
-        ...editFormData,
-        start_time: new Date(editFormData.start_time).toISOString(),
-        end_time: new Date(editFormData.end_time).toISOString()
-      });
+    const response = await examService.updateExam(examToEdit.id, {
+      ...editFormData,
+      start_time: new Date(editFormData.start_time).toISOString(),
+      end_time: new Date(editFormData.end_time).toISOString()
+    });
+
+    if (response.success) {
       toast.success('تم تحديث الاختبار بنجاح');
       setIsEditDialogOpen(false);
       setExamToEdit(null);
       loadExams();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تحديث الاختبار');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل تحديث الاختبار');
     }
   }
 

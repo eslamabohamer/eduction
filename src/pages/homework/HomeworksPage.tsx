@@ -62,13 +62,26 @@ export default function HomeworksPage() {
   }, []);
 
   async function loadData() {
+    setLoading(true);
     try {
-      const [hwData, clsData] = await Promise.all([
+      const [hwResponse, clsResponse] = await Promise.all([
         homeworkService.getHomeworks(),
         classroomService.getClassrooms()
       ]);
-      setHomeworks(hwData);
-      setClassrooms(clsData as any);
+
+      if (hwResponse.success && hwResponse.data) {
+        setHomeworks(hwResponse.data);
+      } else {
+        console.error(hwResponse.error);
+        toast.error('فشل تحميل الواجبات');
+      }
+
+      if (clsResponse.success && clsResponse.data) {
+        setClassrooms(clsResponse.data);
+      } else {
+        console.error(clsResponse.error);
+        toast.error('فشل تحميل الفصول');
+      }
     } catch (error) {
       console.error(error);
       toast.error('فشل تحميل البيانات');
@@ -80,61 +93,72 @@ export default function HomeworksPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setUploading(true);
-    try {
-      let attachment_url = undefined;
-      if (file) {
-        attachment_url = await homeworkService.uploadAttachment(file);
-      }
 
-      await homeworkService.createHomework({
-        ...formData,
-        due_date: new Date(formData.due_date).toISOString(),
-        attachment_url
-      });
+    let attachment_url = undefined;
+    if (file) {
+      const uploadResponse = await homeworkService.uploadAttachment(file);
+      if (uploadResponse.success) {
+        attachment_url = uploadResponse.data;
+      } else {
+        toast.error('فشل رفع الملف المرفق');
+        setUploading(false);
+        return;
+      }
+    }
+
+    const response = await homeworkService.createHomework({
+      ...formData,
+      due_date: new Date(formData.due_date).toISOString(),
+      attachment_url
+    });
+
+    if (response.success) {
       toast.success('تم إضافة الواجب بنجاح');
       setIsDialogOpen(false);
       setFormData({ title: '', description: '', classroom_id: '', due_date: '' });
       setFile(null);
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل إضافة الواجب');
-    } finally {
-      setUploading(false);
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل إضافة الواجب');
     }
+    setUploading(false);
   }
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!homeworkToEdit) return;
 
-    try {
-      await homeworkService.updateHomework(homeworkToEdit.id, {
-        title: formData.title,
-        description: formData.description,
-        classroom_id: formData.classroom_id,
-        due_date: new Date(formData.due_date).toISOString()
-      });
+    const response = await homeworkService.updateHomework(homeworkToEdit.id, {
+      title: formData.title,
+      description: formData.description,
+      classroom_id: formData.classroom_id,
+      due_date: new Date(formData.due_date).toISOString()
+    });
+
+    if (response.success) {
       toast.success('تم تحديث الواجب بنجاح');
       setIsEditDialogOpen(false);
       setHomeworkToEdit(null);
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل تحديث الواجب');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل تحديث الواجب');
     }
   }
 
   async function handleDelete() {
     if (!homeworkToDelete) return;
-    try {
-      await homeworkService.deleteHomework(homeworkToDelete.id);
+
+    const response = await homeworkService.deleteHomework(homeworkToDelete.id);
+
+    if (response.success) {
       toast.success('تم حذف الواجب بنجاح');
       setHomeworkToDelete(null);
       loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('فشل حذف الواجب');
+    } else {
+      console.error(response.error);
+      toast.error(response.error?.message || 'فشل حذف الواجب');
     }
   }
 
