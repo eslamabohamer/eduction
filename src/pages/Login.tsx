@@ -104,6 +104,12 @@ export default function Login() {
           </form>
         </CardContent>
         <CardFooter className="justify-center flex-col gap-2">
+          <Link
+            to="/parent-login"
+            className="text-primary text-sm hover:underline"
+          >
+            دخول ولي الأمر بكود الطالب
+          </Link>
           <p className="text-sm text-muted-foreground">
             ليس لديك حساب؟{' '}
             <Link to="/register" className="text-primary hover:underline">

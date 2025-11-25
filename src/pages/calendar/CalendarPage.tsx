@@ -36,9 +36,9 @@ export default function CalendarPage() {
       ]);
 
       const allEvents: Event[] = [
-        ...exams.map(e => ({ id: e.id, title: `اختبار: ${e.title}`, date: new Date(e.start_time), type: 'exam' as const })),
-        ...sessions.map(s => ({ id: s.id, title: `بث: ${s.title}`, date: new Date(s.start_time), type: 'live' as const })),
-        ...homeworks.map(h => ({ id: h.id, title: `واجب: ${h.title}`, date: new Date(h.due_date), type: 'homework' as const })),
+        ...(Array.isArray(exams) ? exams : []).map(e => ({ id: e.id, title: `اختبار: ${e.title}`, date: new Date(e.start_time), type: 'exam' as const })),
+        ...(Array.isArray(sessions) ? sessions : []).map(s => ({ id: s.id, title: `بث: ${s.title}`, date: new Date(s.start_time), type: 'live' as const })),
+        ...(Array.isArray(homeworks) ? homeworks : []).map(h => ({ id: h.id, title: `واجب: ${h.title}`, date: new Date(h.due_date), type: 'homework' as const })),
       ];
 
       setEvents(allEvents);

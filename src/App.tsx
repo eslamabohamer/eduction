@@ -1,7 +1,8 @@
 // src/App.tsx
 // Updated to include Admin Routes
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ReactNode } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/sonner';
 import Login from '@/pages/Login';
@@ -44,6 +45,7 @@ import StudentCourseView from '@/pages/student/StudentCourseView';
 import { SecretaryMonitoringPage } from '@/pages/teacher/SecretaryMonitoringPage';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
+import ParentLogin from '@/pages/ParentLogin';
 
 // Wrapper to route based on role
 function DashboardRouter() {
@@ -55,12 +57,38 @@ function DashboardRouter() {
   return <Dashboard />;
 }
 
+function ParentPortalRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  const hasParentSession = typeof window !== 'undefined' && !!window.localStorage.getItem('parentSession');
+
+  if (loading && !hasParentSession) {
+    return <div className="p-10 text-center">O�OO�US OU,O�O-U.USU,...</div>;
+  }
+
+  if (user?.role === 'Parent') {
+    return <Layout>{children}</Layout>;
+  }
+
+  if (hasParentSession) {
+    return (
+      <div className="min-h-screen bg-muted/40" dir="rtl">
+        <div className="max-w-6xl mx-auto py-6 px-4">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  return <Navigate to="/parent-login" replace />;
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/parent-login" element={<ParentLogin />} />
           <Route path="/register" element={<Register />} />
           <Route
             path="/"
@@ -283,25 +311,25 @@ function App() {
           <Route
             path="/parent/dashboard"
             element={
-              <Layout>
+              <ParentPortalRoute>
                 <ParentDashboard />
-              </Layout>
+              </ParentPortalRoute>
             }
           />
           <Route
             path="/parent/child/:id"
             element={
-              <Layout>
+              <ParentPortalRoute>
                 <ParentChildDetails />
-              </Layout>
+              </ParentPortalRoute>
             }
           />
           <Route
             path="/parent/messages"
             element={
-              <Layout>
+              <ParentPortalRoute>
                 <ParentMessages />
-              </Layout>
+              </ParentPortalRoute>
             }
           />
 

@@ -97,7 +97,7 @@ export const studentService = {
       const parentCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code
 
       // 1. Call RPC to create user and basic profile
-      const { data: result, error } = await supabase.rpc('create_student_user', {
+      const { data: result, error } = await supabase.rpc('create_student_user_v2', {
         p_name: data.name,
         p_username: data.username,
         p_password: password,
@@ -114,6 +114,23 @@ export const studentService = {
         };
       }
 
+      const payload = result as any;
+      const studentId =
+        typeof payload === 'object' && payload !== null
+          ? payload.id ?? payload?.data?.id
+          : payload;
+      const resolvedParentCode =
+        typeof payload === 'object' && payload !== null && 'parent_code' in payload
+          ? payload.parent_code
+          : parentCode;
+
+      if (!studentId) {
+        return {
+          success: false,
+          error: { message: 'Invalid student creation response', code: 'INVALID_RPC_RESPONSE' }
+        };
+      }
+
       // 2. Update extended profile fields
       const updates: any = {};
       if (data.parent_name) updates.parent_name = data.parent_name;
@@ -124,7 +141,7 @@ export const studentService = {
         const { error: updateError } = await supabase
           .from('student_profiles')
           .update(updates)
-          .eq('id', result);
+          .eq('id', studentId);
 
         if (updateError) {
           console.error('Failed to update extended profile info', updateError);
@@ -132,13 +149,13 @@ export const studentService = {
       }
 
       // Log Activity
-      await activityLogService.logAction('create_student', 'student', result, {
+      await activityLogService.logAction('create_student', 'student', studentId, {
         name: data.name,
         grade: data.grade,
         level: data.level
       });
 
-      return { success: true, data: { id: result, password, parentCode } };
+      return { success: true, data: { id: studentId, password, parentCode: resolvedParentCode } };
 
     } catch (err: any) {
       return {

@@ -64,7 +64,7 @@ export const activityLogService = {
                 .from('activity_logs')
                 .select(`
             *,
-            user:users (
+            user:users!activity_logs_user_id_fkey (
               name,
               role
             )
